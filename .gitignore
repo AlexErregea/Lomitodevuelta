@@ -1,0 +1,26 @@
+# Dependencias
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Builds
+dist/
+coverage/
+
+# Entornos — NUNCA subir secretos. .env.example sí se versiona.
+.env
+.env.*
+!.env.example
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# Vercel
+.vercel/
+
+# Sistema
+.DS_Store
+Thumbs.db
