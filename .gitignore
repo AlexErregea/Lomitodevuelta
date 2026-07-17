@@ -8,6 +8,7 @@ out/
 # Builds
 dist/
 coverage/
+*.tsbuildinfo
 
 # Entornos — NUNCA subir secretos. .env.example sí se versiona.
 .env

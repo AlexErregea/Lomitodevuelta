@@ -41,7 +41,11 @@ tú lo técnico dentro de las decisiones ya registradas.
 
 ## Estado del proyecto
 
-Sesión de arquitectura completada por bloques (1-5 entregados). Los stubs con
-`TODO(Bloque 7)` en `packages/matching/src/` y `supabase/functions/` son
-implementación pendiente — sus especificaciones ya existen en `docs/`.
-Roadmap de sprints: `docs/roadmap-tecnico.md` (Bloque 6).
+Sesión de arquitectura completada (bloques 1-7). El dominio de matching
+(`packages/matching`) está IMPLEMENTADO y testeado (14 casos dorados en verde).
+Siguen como stubs `TODO`: las 4 Edge Functions y toda la API/UI (Sprint 1+,
+ver `docs/roadmap-tecnico.md`). Pendientes que requieren insumos del fundador:
+benchmark de embeddings (`docs/benchmark-embeddings.md` — las anclas
+visual_floor/ceil son placeholder), alta de WhatsApp
+(`docs/guia-whatsapp-setup.md`), Docker Desktop para validar migraciones
+localmente, y cuentas de Supabase/Vercel para el primer despliegue.

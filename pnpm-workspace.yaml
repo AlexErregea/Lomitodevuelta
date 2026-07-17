@@ -1,3 +1,10 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+# Dependencias autorizadas a ejecutar scripts de build en la instalación
+# (pnpm los bloquea por defecto): esbuild lo usa vitest, sharp lo usa Next
+# para optimizar imágenes, supabase descarga su binario de CLI.
+allowBuilds:
+  esbuild: true
+  sharp: true
+  supabase: true
