@@ -198,4 +198,6 @@ que la espera se perciba como trabajo de la IA, no como lentitud.
 | [0007](./adr/0007-multitenancy-rls.md) | Multi-tenancy pooled: tablas compartidas + tenant_id + RLS; aislamiento de gestión, no de datos | Aceptado |
 | [0008](./adr/0008-notificaciones-whatsapp.md) | Meta WhatsApp Cloud API directo + ledger idempotente + fallback email (Resend) | Aceptado |
 | [0009](./adr/0009-moderacion-antifraude.md) | Post-moderación con flags automáticos (duplicados, is_dog, heurísticas de estafa) y revisión humana | Aceptado |
-| 0010+ | og:image dinámico, observabilidad, entornos y despliegue | Pendientes (Bloque 6) |
+| [0010](./adr/0010-og-image.md) | og:image dinámico con next/og + caché CDN + buster de versión para WhatsApp | Aceptado |
+| [0011](./adr/0011-observabilidad.md) | Tabla events como fuente de verdad + PostHog (producto y errores); dashboards = vistas SQL | Aceptado |
+| [0012](./adr/0012-entornos-despliegue.md) | Local + dev cloud (previews) + producción; migraciones manuales con checklist | Aceptado |

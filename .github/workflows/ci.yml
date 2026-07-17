@@ -1,0 +1,34 @@
+# ============================================================================
+# CI mínima (docs/testing-strategy.md): en cada push y PR se valida que el
+# monorepo instala, tipa, lintea y pasa tests. Sin despliegues aquí: la web
+# la despliega Vercel con su propia integración de GitHub (ADR-0012).
+# ============================================================================
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # NOTA: cuando exista pnpm-lock.yaml commiteado (tras el primer
+      # `pnpm install` del Bloque 7), cambiar a `--frozen-lockfile`.
+      - run: pnpm install
+
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
