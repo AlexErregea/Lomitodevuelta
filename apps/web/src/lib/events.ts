@@ -15,7 +15,9 @@ export type FunnelEventType =
   | 'candidates_shown'
   | 'match_suggested'
   | 'match_notified'
-  | 'share_clicked';
+  | 'share_clicked'
+  | 'report_renewed'
+  | 'report_deleted';
 
 export async function recordEvent(input: {
   eventType: FunnelEventType;

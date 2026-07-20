@@ -1,14 +1,10 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import type {
-  CreateReportRequest,
-  CreateReportResponse,
-  SignUploadResponse,
-} from '@lomito/shared';
+import type { CreateReportRequest, CreateReportResponse } from '@lomito/shared';
 import { content } from '@/content/es-MX';
 import { captureEvent } from '@/lib/client/analytics';
-import { compressImage } from '@/lib/client/compress';
+import { uploadPhoto } from '@/lib/client/upload';
 
 // ============================================================================
 // Formulario del Flujo B — "una foto → la IA busca", deliberadamente simple
@@ -17,7 +13,7 @@ import { compressImage } from '@/lib/client/compress';
 // §5). Los textos vienen del módulo de contenido (regla i18n).
 // ============================================================================
 
-type Stage = 'idle' | 'compressing' | 'uploading' | 'analyzing' | 'searching' | 'done';
+type Stage = 'idle' | 'uploading' | 'analyzing' | 'searching' | 'done';
 
 const t = content.flowB;
 const tr = content.results;
@@ -61,29 +57,14 @@ export function ReportForm() {
     if (!consent) return setError(t.errors.missingConsent);
 
     try {
-      setStage('compressing');
-      const compressed = await compressImage(photo);
-
       setStage('uploading');
-      const signResponse = await fetch('/api/uploads/sign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contentType: 'image/jpeg' }),
-      });
-      if (!signResponse.ok) throw new Error('sign failed');
-      const sign = (await signResponse.json()) as SignUploadResponse;
-      const uploadResponse = await fetch(sign.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'image/jpeg' },
-        body: compressed,
-      });
-      if (!uploadResponse.ok) throw new Error('upload failed');
+      const storagePath = await uploadPhoto(photo);
       captureEvent('photo_uploaded', { report_type: 'found' });
 
       setStage('analyzing');
       const request: CreateReportRequest = {
         reportType: 'found',
-        photoPaths: [sign.storagePath],
+        photoPaths: [storagePath],
         geo,
         eventDate,
         contact: { channel: 'whatsapp', value: whatsapp },
@@ -166,7 +147,10 @@ export function ReportForm() {
       <p>
         <label>
           <input type="checkbox" name="consent" required /> {t.consentLabel}
-        </label>
+        </label>{' '}
+        <a href="/privacidad" target="_blank">
+          {t.privacyLink}
+        </a>
       </p>
 
       {error && <p role="alert">⚠️ {error}</p>}

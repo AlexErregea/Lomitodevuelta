@@ -71,6 +71,44 @@ export const createReportRequestSchema = z.object({
 export type CreateReportRequest = z.infer<typeof createReportRequestSchema>;
 
 // ----------------------------------------------------------------------------
+// PATCH /api/reports/:id — corregir ficha (auth: manage-token o JWT)
+// ----------------------------------------------------------------------------
+export const updateReportRequestSchema = z
+  .object({
+    /** La corrección humana SIEMPRE gana sobre lo extraído por la IA */
+    attributes: dogAttributesSchema.optional(),
+    /** null = borrar el texto */
+    distinctiveMarks: z.string().max(500).nullable().optional(),
+    finderNote: z.string().max(500).nullable().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, {
+    message: 'Debe incluirse al menos un campo a corregir.',
+  });
+export type UpdateReportRequest = z.infer<typeof updateReportRequestSchema>;
+
+export interface UpdateReportResponse {
+  reportId: string;
+  attributes: DogAttributes;
+  distinctiveMarks: string | null;
+  finderNote: string | null;
+}
+
+// ----------------------------------------------------------------------------
+// POST /api/reports/:id/renew · DELETE /api/reports/:id (ARCO)
+// ----------------------------------------------------------------------------
+export interface RenewReportResponse {
+  reportId: string;
+  /** Nueva fecha de vencimiento (ISO) tras extender la vigencia */
+  expiresAt: string;
+}
+
+export interface DeleteReportResponse {
+  reportId: string;
+  /** true = borrado lógico aplicado; la purga física es programada */
+  deleted: true;
+}
+
+// ----------------------------------------------------------------------------
 // Matches — aceptar / rechazar / confirmar reunión
 // ----------------------------------------------------------------------------
 export const matchSideSchema = z.enum(['lost', 'found']);

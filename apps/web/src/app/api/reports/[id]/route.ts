@@ -1,15 +1,25 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { type ReportPublicResponse } from '@lomito/shared';
+import {
+  updateReportRequestSchema,
+  type DeleteReportResponse,
+  type ReportPublicResponse,
+  type UpdateReportResponse,
+} from '@lomito/shared';
 import { apiError } from '@/lib/api-response';
 import { parseAttributes } from '@/lib/candidates';
+import { recordEvent } from '@/lib/events';
+import { authenticateManageRequest } from '@/lib/manage-auth';
 import { PHOTOS_BUCKET, supabaseAdmin } from '@/lib/supabase-admin';
 
 // ============================================================================
-// GET /api/reports/:id — ficha pública. SOLO campos de la vista dogs_public
-// (ubicación ya difuminada, sin contacto, sin token) + fotos con URL firmada
-// de lectura (TTL 1 h). Un id inexistente, expirado o borrado responde 404
-// indistinguible (api-contracts.md §5).
+// /api/reports/:id
+//   GET    → ficha pública: SOLO campos de la vista dogs_public (ubicación ya
+//            difuminada, sin contacto, sin token) + fotos firmadas TTL 1 h.
+//   PATCH  → corregir ficha (manage-token): la corrección humana gana a la IA.
+//   DELETE → borrado lógico inmediato (ARCO, security-privacy.md §5); la
+//            purga física la hace lifecycle (Sprint 3).
+// 404 indistinguible para inexistente/expirado/borrado (api-contracts.md §5).
 // ============================================================================
 
 const idSchema = z.string().uuid();
@@ -48,5 +58,75 @@ export async function GET(
     photoUrls: (signed ?? []).map((s) => s.signedUrl).filter((u): u is string => Boolean(u)),
     createdAt: dog.created_at,
   };
+  return NextResponse.json(response);
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const auth = await authenticateManageRequest(request, id);
+  if (!auth.ok) return auth.response;
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return apiError('validation_error', 'El cuerpo debe ser JSON.');
+  }
+  const parsed = updateReportRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return apiError('validation_error', parsed.error.issues.map((i) => i.message).join('; '));
+  }
+  const input = parsed.data;
+
+  // Solo se tocan los campos enviados; la ausencia no borra nada (null sí).
+  const patch: Record<string, unknown> = {};
+  if (input.attributes !== undefined) {
+    patch.attributes = { ...parseAttributes(auth.dog.attributes), ...input.attributes };
+  }
+  if (input.distinctiveMarks !== undefined) patch.distinctive_marks = input.distinctiveMarks;
+  if (input.finderNote !== undefined) patch.finder_note = input.finderNote;
+
+  const { data: updated, error } = await supabaseAdmin()
+    .from('dogs')
+    .update(patch)
+    .eq('id', id)
+    .select('id, attributes, distinctive_marks, finder_note')
+    .single();
+  if (error || !updated) {
+    console.error(JSON.stringify({ msg: 'report_patch_failed', error: error?.message }));
+    return apiError('internal_error', 'No se pudo guardar la corrección.');
+  }
+
+  const response: UpdateReportResponse = {
+    reportId: updated.id,
+    attributes: parseAttributes(updated.attributes),
+    distinctiveMarks: updated.distinctive_marks ?? null,
+    finderNote: updated.finder_note ?? null,
+  };
+  return NextResponse.json(response);
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const auth = await authenticateManageRequest(request, id);
+  if (!auth.ok) return auth.response;
+
+  const { error } = await supabaseAdmin()
+    .from('dogs')
+    .update({ deleted_at: new Date().toISOString(), status: 'removed' })
+    .eq('id', id);
+  if (error) {
+    console.error(JSON.stringify({ msg: 'report_delete_failed', error: error.message }));
+    return apiError('internal_error', 'No se pudo borrar el reporte.');
+  }
+  await recordEvent({ eventType: 'report_deleted', dogId: id });
+
+  const response: DeleteReportResponse = { reportId: id, deleted: true };
   return NextResponse.json(response);
 }

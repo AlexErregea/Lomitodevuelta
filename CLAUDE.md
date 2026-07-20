@@ -49,8 +49,19 @@ pending, `GET /api/reports/:id`, `GET /api/reports/:id/candidates` con
 manage-token), Edge Functions reales `retry-pending` (reintentos con backoff +
 fallback email) y `whatsapp-webhook` (verificación + estados → verified_at),
 migración 8 (bucket privado `dog-photos`, `notifications.attempts`, pg_cron),
-UI mínima del Flujo B con compresión client-side, y 19 tests de la lib de
+UI mínima del Flujo B con compresión client-side, y tests de la lib de
 servidor. Siguen como stubs: `on-report-created` y `lifecycle` (Sprint 3).
+
+**Sprint 2 implementado en código** (2026-07-19): Flujo A completo (`/perdi`,
+multi-foto, ficha autocompletada corregible — la corrección humana gana y
+elegir sexo marca `sexConfirmed`), ficha pública `/r/:id` mobile-first con
+difuminado opt-in para sensibles y botón compartir a WhatsApp, og:image
+dinámica `/r/:id/opengraph-image` (ADR-0010: caché CDN + buster
+`?v=updated_at`, silueta si sensible, cartel genérico si bloqueado/borrado),
+gestión ARCO sin cuenta (`PATCH`/`renew`/`DELETE` + panel `/r/:id/gestionar`)
+y aviso de privacidad versionado (`/privacidad`, v1 en
+`src/content/privacidad-v1.ts` — plantilla: revisión de abogado antes de la
+fase B2B).
 
 **El DoD del Sprint 1 exige verificación EN PRODUCCIÓN — pendiente de insumos
 del fundador**: cuentas Supabase/Vercel + secretos reales (Replicate,

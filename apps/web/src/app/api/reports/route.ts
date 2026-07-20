@@ -5,6 +5,7 @@ import {
   type ScoredCandidate,
 } from '@lomito/shared';
 import type { ReferenceReport } from '@lomito/matching';
+import { PRIVACY_VERSION } from '@/content/privacidad-v1';
 import { apiError } from '@/lib/api-response';
 import { searchCandidates } from '@/lib/candidates';
 import { hashContactValue, maskContactValue, normalizeContactValue } from '@/lib/contact';
@@ -149,7 +150,8 @@ export async function POST(request: NextRequest) {
       value: contactValue,
       value_hash: hashContactValue(input.contact.channel, input.contact.value),
       display_mask: maskContactValue(input.contact.channel, input.contact.value),
-      consent_version: 'v1',
+      // La versión EXACTA del aviso publicado que el usuario aceptó (LFPDPPP).
+      consent_version: PRIVACY_VERSION,
     })
     .select('id')
     .single();
