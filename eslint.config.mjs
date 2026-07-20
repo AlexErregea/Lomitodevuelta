@@ -13,6 +13,8 @@ export default tseslint.config(
       '**/coverage/**',
       // Las Edge Functions son Deno: se validan con `deno check`, no con ESLint.
       'supabase/functions/**',
+      // Generado por Next en cada build; no es código nuestro.
+      'apps/web/next-env.d.ts',
     ],
   },
   ...tseslint.configs.recommended,

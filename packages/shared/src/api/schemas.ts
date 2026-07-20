@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { dogAttributesSchema, geoPointSchema, reportTypeSchema } from '../types/dog';
+import type { DogAttributes, GeoPoint, ReportType } from '../types/dog';
 
 // ============================================================================
 // Contratos de la API (docs/api-contracts.md). Los esquemas Zod validan los
@@ -94,3 +95,78 @@ export const rejectMatchRequestSchema = z.object({
   reason: z.string().max(500).optional(),
 });
 export type RejectMatchRequest = z.infer<typeof rejectMatchRequestSchema>;
+
+// ----------------------------------------------------------------------------
+// DTOs de respuesta (el servidor los construye; no se validan en runtime).
+// Espejo por cable de los tipos del dominio: este paquete no puede importar
+// @lomito/matching (la dependencia va en el otro sentido), así que las
+// uniones literales se declaran aquí y TypeScript garantiza la compatibilidad
+// estructural en apps/web.
+// ----------------------------------------------------------------------------
+
+/** Espejo de MatchFlag (packages/matching/src/types.ts). */
+export type CandidateFlag =
+  | 'visual_ambiguity'
+  | 'sex_conflict'
+  | 'timeline_implausible'
+  | 'no_embedding'
+  | 'low_photo_quality';
+
+/** Espejo de ScoreBand (packages/matching/src/explain.ts). */
+export type CandidateScoreBand = 'muy_alta' | 'alta' | 'posible';
+
+/** Candidato puntuado tal como viaja por la API (api-contracts.md §4). */
+export interface ScoredCandidate {
+  reportId: string;
+  /** URL firmada, TTL 1 h; difuminada si is_sensitive */
+  photoUrl: string | null;
+  totalScore: number;
+  scoreBand: CandidateScoreBand;
+  /** renderExplanation() — ya en español */
+  explanation: string;
+  flags: CandidateFlag[];
+  /** Ubicación difuminada (~110 m) */
+  approxLocation: GeoPoint;
+  daysBetween: number;
+  /** Contacto SIEMPRE enmascarado aquí */
+  displayMask: string;
+  /** Si la capa 3 ya creó el match formal (Sprint 3); null en búsqueda inmediata */
+  matchId: string | null;
+}
+
+export interface CreateReportResponse {
+  reportId: string;
+  /** Enlace de gestión firmado — se muestra UNA vez y se envía por WhatsApp */
+  manageUrl: string;
+  /** null si la IA quedó pendiente (ruta pending, ADR-0003) */
+  extracted: {
+    attributes: DogAttributes;
+    marksTags: string[];
+    qualityScore: number;
+  } | null;
+  /** Búsqueda inmediata (vacío si la IA quedó pendiente) */
+  candidates: ScoredCandidate[];
+  /** Ficha pública para compartir por WhatsApp */
+  shareUrl: string;
+}
+
+/** Respuesta de GET /api/reports/:id — solo campos de la vista dogs_public. */
+export interface ReportPublicResponse {
+  reportId: string;
+  reportType: ReportType;
+  attributes: DogAttributes;
+  distinctiveMarks: string | null;
+  isSensitive: boolean;
+  rewardOffered: boolean;
+  eventDate: string;
+  approxLocation: GeoPoint;
+  addressText: string | null;
+  /** URLs firmadas de lectura, TTL 1 h */
+  photoUrls: string[];
+  createdAt: string;
+}
+
+/** Respuesta de GET /api/reports/:id/candidates. */
+export interface CandidatesResponse {
+  candidates: ScoredCandidate[];
+}

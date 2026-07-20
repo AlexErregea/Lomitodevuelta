@@ -6,4 +6,5 @@ export * from './types/dog';
 export * from './api/schemas';
 export * from './providers/embedding';
 export * from './providers/attributes';
+export * from './providers/extraction-prompt';
 export * from './providers/notifications';

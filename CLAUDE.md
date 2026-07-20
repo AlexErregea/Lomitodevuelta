@@ -41,11 +41,21 @@ tú lo técnico dentro de las decisiones ya registradas.
 
 ## Estado del proyecto
 
-Sesión de arquitectura completada (bloques 1-7). El dominio de matching
-(`packages/matching`) está IMPLEMENTADO y testeado (14 casos dorados en verde).
-Siguen como stubs `TODO`: las 4 Edge Functions y toda la API/UI (Sprint 1+,
-ver `docs/roadmap-tecnico.md`). Pendientes que requieren insumos del fundador:
-benchmark de embeddings (`docs/benchmark-embeddings.md` — las anclas
-visual_floor/ceil son placeholder), alta de WhatsApp
-(`docs/guia-whatsapp-setup.md`), Docker Desktop para validar migraciones
-localmente, y cuentas de Supabase/Vercel para el primer despliegue.
+Dominio de matching (`packages/matching`) implementado y testeado (14 casos
+dorados). **Sprint 1 implementado en código** (2026-07-19): pipeline de visión
+completo (Replicate + Claude Haiku con salida estructurada validada por Zod),
+rutas API (`/api/uploads/sign`, `POST /api/reports` Flujo B con ruta
+pending, `GET /api/reports/:id`, `GET /api/reports/:id/candidates` con
+manage-token), Edge Functions reales `retry-pending` (reintentos con backoff +
+fallback email) y `whatsapp-webhook` (verificación + estados → verified_at),
+migración 8 (bucket privado `dog-photos`, `notifications.attempts`, pg_cron),
+UI mínima del Flujo B con compresión client-side, y 19 tests de la lib de
+servidor. Siguen como stubs: `on-report-created` y `lifecycle` (Sprint 3).
+
+**El DoD del Sprint 1 exige verificación EN PRODUCCIÓN — pendiente de insumos
+del fundador**: cuentas Supabase/Vercel + secretos reales (Replicate,
+Anthropic, WhatsApp con plantilla `manage_link` aprobada en Meta), secretos de
+Vault para el cron (ver migración `20260719130000`), Docker Desktop para
+validar migraciones localmente, y el benchmark de embeddings
+(`docs/benchmark-embeddings.md` — modelo y anclas visual_floor/ceil siguen
+siendo placeholder).

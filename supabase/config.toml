@@ -1,0 +1,24 @@
+# ============================================================================
+# Configuración del CLI de Supabase. Solo se declaran las desviaciones de los
+# valores por defecto; `supabase init` puede ampliar este archivo sin miedo.
+# ============================================================================
+
+project_id = "lomitodevuelta"
+
+# retry-pending la invoca pg_cron con un secreto propio (EDGE_WEBHOOK_SECRET
+# en la cabecera Authorization) — no usa JWT de Supabase.
+[functions.retry-pending]
+verify_jwt = false
+
+# whatsapp-webhook la invoca Meta: se autentica con el verify token (GET) y
+# la firma X-Hub-Signature-256 (POST), no con JWT.
+[functions.whatsapp-webhook]
+verify_jwt = false
+
+# on-report-created la invocará el DB webhook con EDGE_WEBHOOK_SECRET (Sprint 3).
+[functions.on-report-created]
+verify_jwt = false
+
+# lifecycle la invocará pg_cron con EDGE_WEBHOOK_SECRET (Sprint 3).
+[functions.lifecycle]
+verify_jwt = false

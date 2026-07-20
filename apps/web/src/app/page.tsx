@@ -1,11 +1,14 @@
-// Página raíz provisional. La UI real de los Flujos A y B se construye en las
-// sesiones de desarrollo posteriores al Bloque 7 (ver docs/roadmap-tecnico.md).
+import { content } from '@/content/es-MX';
+import { ReportForm } from './report-form';
+
+// Página raíz del MVP: el Flujo B ("encontré un perro") es el flujo sagrado
+// de fricción cero y vive directo en la home. El Flujo A llega en Sprint 2.
 export default function HomePage() {
   return (
     <main>
-      <h1>LomitoDeVuelta 🐕</h1>
-      <p>Sube una foto y la IA busca por ti.</p>
-      <p>En construcción — andamiaje del Bloque 5.</p>
+      <h1>{content.home.title}</h1>
+      <p>{content.home.tagline}</p>
+      <ReportForm />
     </main>
   );
 }
