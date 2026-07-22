@@ -1,7 +1,9 @@
 import { z } from 'zod';
+import { MatchesPanel } from '@/components/matches-panel';
 import { content } from '@/content/es-MX';
 import { parseAttributes } from '@/lib/candidates';
 import { verifyManageToken } from '@/lib/manage-token';
+import { loadReportMatches } from '@/lib/matches';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { ManagePanel } from './manage-panel';
 
@@ -50,9 +52,15 @@ export default async function GestionarPage({
     return invalid;
   }
 
+  const matches = await loadReportMatches(dog.id as string);
+
   return (
     <main style={{ maxWidth: 480, margin: '0 auto', padding: '1rem' }}>
       <h1>{t.heading}</h1>
+
+      <h2>{content.matches.heading}</h2>
+      <MatchesPanel matches={matches} manageToken={token} />
+
       <ManagePanel
         reportId={dog.id}
         manageToken={token}

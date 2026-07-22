@@ -156,8 +156,8 @@ Deno.serve(async (req) => {
 
       if (complete) {
         summary.dogsCompleted++;
-        // TODO(Sprint 3): disparar aquí el matching proactivo (on-report-created)
-        // ahora que el reporte ya tiene embeddings — capa 3 del pipeline.
+        // El matching proactivo (on-report-created) lo dispara el trigger de BD
+        // dogs_proactive_matching al ver embedding_status → 'done' (migración 9).
       }
     } catch (err) {
       summary.errors.push(`dog ${dog.id}: ${String(err)}`);

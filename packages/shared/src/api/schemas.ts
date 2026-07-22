@@ -134,6 +134,58 @@ export const rejectMatchRequestSchema = z.object({
 });
 export type RejectMatchRequest = z.infer<typeof rejectMatchRequestSchema>;
 
+export const confirmReunionRequestSchema = z.object({
+  side: matchSideSchema,
+});
+export type ConfirmReunionRequest = z.infer<typeof confirmReunionRequestSchema>;
+
+/** Estados de un match (espejo del enum match_status en la BD). */
+export type MatchStatus =
+  | 'suggested'
+  | 'notified'
+  | 'accepted'
+  | 'rejected'
+  | 'confirmed_reunion'
+  | 'expired';
+
+export interface AcceptMatchResponse {
+  status: MatchStatus;
+  /** true → la doble aceptación abrió el puente y se enviaron los contactos */
+  contactRevealed: boolean;
+}
+
+export interface RejectMatchResponse {
+  status: MatchStatus;
+}
+
+export interface ConfirmReunionResponse {
+  status: MatchStatus;
+}
+
+/** Fila de la bandeja de coincidencias del enlace de gestión. */
+export interface ManagedMatch {
+  matchId: string;
+  status: MatchStatus;
+  /** Lado de ESTE reporte dentro del match (para la prueba de propiedad) */
+  side: MatchSide;
+  totalScore: number;
+  scoreBand: CandidateScoreBand;
+  explanation: string;
+  flags: CandidateFlag[];
+  /** Ficha pública de la contraparte (foto firmada, ubicación difuminada) */
+  counterpart: {
+    reportId: string;
+    photoUrl: string | null;
+    approxLocation: GeoPoint;
+    daysBetween: number;
+  };
+  /** ¿Ya aceptó este lado? / ¿ya aceptó la contraparte? */
+  selfAccepted: boolean;
+  counterpartAccepted: boolean;
+  /** Prueba de propiedad que aportó el lado 'lost' (visible para el lado 'found') */
+  ownershipProof: OwnershipProof | null;
+}
+
 // ----------------------------------------------------------------------------
 // DTOs de respuesta (el servidor los construye; no se validan en runtime).
 // Espejo por cable de los tipos del dominio: este paquete no puede importar

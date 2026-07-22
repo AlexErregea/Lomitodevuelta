@@ -15,6 +15,10 @@ export type FunnelEventType =
   | 'candidates_shown'
   | 'match_suggested'
   | 'match_notified'
+  | 'match_accepted_side'
+  | 'match_rejected'
+  | 'contact_revealed'
+  | 'reunion_confirmed'
   | 'share_clicked'
   | 'report_renewed'
   | 'report_deleted';

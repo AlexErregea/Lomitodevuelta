@@ -63,6 +63,24 @@ y aviso de privacidad versionado (`/privacidad`, v1 en
 `src/content/privacidad-v1.ts` — plantilla: revisión de abogado antes de la
 fase B2B).
 
+**Sprint 3 implementado en código** (2026-07-22): el motor proactivo y el
+cierre del MVP. `on-report-created` real (capa 3: reusa `@lomito/matching` vía
+import map de Deno, crea `matches` con par único e idempotencia, notifica a
+ambas partes con tope anti-spam), disparada por un trigger de BD al quedar el
+embedding listo. Rutas de match `accept`/`reject`/`confirm-reunion` con
+prueba de propiedad ligera y puente de contacto tras doble aceptación (copys
+anti-extorsión, evento `reunion_confirmed`). `lifecycle` real (renovación,
+expiración, purga vía `purge_personal_data()`, kill-switch de presupuesto).
+Bandeja de coincidencias en `/r/:id/gestionar`. Migración 9 (trigger,
+`system_config`, purga, cron a lifecycle, vistas de métricas del panel).
+Todas las Edge Functions están implementadas; NADA queda como stub.
+
+**Pendiente de despliegue/insumos del fundador para el DoD del MVP**: además
+de lo del Sprint 1-2, aprobar en Meta las plantillas `match_found`,
+`contact_reveal` y `renewal_reminder`; sembrar los secretos de Vault de las
+migraciones 8 y 9; y ejecutar el caso completo end-to-end en producción para
+el lanzamiento en la zona piloto.
+
 **El DoD del Sprint 1 exige verificación EN PRODUCCIÓN — pendiente de insumos
 del fundador**: cuentas Supabase/Vercel + secretos reales (Replicate,
 Anthropic, WhatsApp con plantilla `manage_link` aprobada en Meta), secretos de

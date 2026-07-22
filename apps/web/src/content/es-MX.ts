@@ -71,6 +71,37 @@ export const content = {
       coatLength: { short: 'corto', medium: 'mediano', long: 'largo' },
     } as Record<string, Record<string, string>>,
   },
+  matches: {
+    heading: 'Coincidencias',
+    empty: 'Aún no hay coincidencias. El sistema sigue buscando y te avisará por WhatsApp.',
+    counterpartLost: 'Perro perdido que podría ser el que encontraste',
+    counterpartFound: 'Perro encontrado que podría ser el tuyo',
+    viewFicha: 'Ver ficha completa',
+    // Aceptación
+    acceptFound: 'Sí, es el perro que encontré',
+    acceptLost: 'Sí, es mi perro',
+    proofHeading: 'Prueba de que es tu perro',
+    proofBody:
+      'Antes de conectar, comparte algo que solo el dueño sabría. Lo revisa la otra persona, no la plataforma.',
+    proofKindMark: 'Describir una seña no visible en la ficha',
+    proofKindPhoto: 'Subir una foto histórica del perro',
+    proofMarkPlaceholder: 'Ej. "tiene una cicatriz pequeña en la pata trasera izquierda"',
+    proofRequired: 'Necesitamos la prueba para continuar.',
+    proofFromClaimant: 'La persona que dice ser el dueño aportó:',
+    proofPhotoLabel: '(foto histórica adjunta)',
+    // Estados
+    waitingCounterpart: 'Aceptaste. Esperando a que la otra parte acepte para conectarlos.',
+    bridgeOpen: 'Ambos aceptaron. Les enviamos el contacto por WhatsApp. 🎉',
+    confirmReunionButton: 'Confirmar que se reunieron',
+    reunionConfirmed: '¡Reunión confirmada! Gracias por cerrar el círculo. 🐾',
+    // Rechazo
+    rejectButton: 'No es',
+    rejectReasonPlaceholder: '¿Por qué no? (opcional, nos ayuda a mejorar)',
+    // Anti-extorsión
+    safetyWarning:
+      '⚠️ Nunca deposites dinero por adelantado. Si te piden un pago para "devolverte" al perro, es extorsión: repórtalo. Acuerden verse en un lugar público o una veterinaria.',
+    genericError: 'Algo salió mal. Intenta de nuevo.',
+  },
   manage: {
     heading: 'Gestionar tu reporte',
     invalidTitle: 'Enlace de gestión inválido',
