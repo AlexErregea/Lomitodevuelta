@@ -142,14 +142,32 @@ export const content = {
     selectedMany: 'fotos listas',
     change: 'Cambiar',
   },
+  // Campo de ubicación, compartido por los dos flujos. El respaldo manual no es
+  // un caso borde: mucha gente niega el permiso de ubicación por instinto.
+  location: {
+    useGps: 'Usar mi ubicación actual',
+    locating: 'Buscando tu ubicación…',
+    capturedGps: 'Ubicación capturada',
+    capturedManual: 'Ubicación aproximada',
+    retry: 'Reintentar',
+    manualToggle: 'O elegir la alcaldía a mano',
+    alcaldiaLabel: 'Alcaldía',
+    alcaldiaPlaceholder: 'Elige tu alcaldía',
+    referenceLabel: 'Colonia o referencia (opcional)',
+    referencePlaceholder: 'Ej. Col. Roma Norte, cerca del metro',
+    approxNote:
+      'Con la alcaldía ya podemos empezar a buscar. Si agregas la colonia, las coincidencias salen mejor.',
+    errors: {
+      denied: 'No diste permiso de ubicación. No pasa nada: elige tu alcaldía aquí abajo y seguimos.',
+      unavailable: 'No pudimos obtener tu ubicación. Puedes reintentar o elegir tu alcaldía aquí abajo.',
+      unsupported: 'Tu navegador no comparte la ubicación. Elige tu alcaldía aquí abajo.',
+    },
+  },
   flowB: {
     heading: 'Encontré un perro',
     promise: 'Con una foto basta. La comparamos con los perros reportados como perdidos cerca de ti y avisamos a su familia.',
     photoLabel: 'Foto del perro (una basta)',
     locationLabel: 'Ubicación donde lo encontraste',
-    useMyLocation: 'Usar mi ubicación actual',
-    locationCaptured: 'Ubicación capturada',
-    locationError: 'No pudimos obtener tu ubicación. Activa el GPS y vuelve a intentar.',
     dateLabel: '¿Cuándo lo encontraste?',
     noteLabel: '¿Dónde está el perro ahora? (opcional)',
     notePlaceholder: 'Ej. "Lo tengo en mi casa" o "Sigue en el parque de la esquina"',

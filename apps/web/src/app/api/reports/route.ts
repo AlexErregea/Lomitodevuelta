@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
       distinctive_marks: distinctiveMarks,
       marks_tags: marksTags,
       geo_point: toWkt(input.geo),
+      address_text: input.addressText ?? null,
       zone_id: zone.id,
       event_date: input.eventDate,
       finder_note: input.finderNote ?? null,

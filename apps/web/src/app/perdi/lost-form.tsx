@@ -10,6 +10,7 @@ import {
   primaryButtonClass,
   secondaryButtonClass,
 } from '@/components/flow-shell';
+import { LocationField, type LocationValue } from '@/components/location-field';
 import { PhotoPicker } from '@/components/photo-picker';
 import { content } from '@/content/es-MX';
 import { captureEvent } from '@/lib/client/analytics';
@@ -31,8 +32,7 @@ const MAX_PHOTOS = 5;
 export function LostForm() {
   const [stage, setStage] = useState<Stage>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
-  const [geoError, setGeoError] = useState(false);
+  const [location, setLocation] = useState<LocationValue | null>(null);
   const [result, setResult] = useState<CreateReportResponse | null>(null);
   const [copied, setCopied] = useState(false);
   const startedRef = useRef(false);
@@ -42,15 +42,6 @@ export function LostForm() {
       startedRef.current = true;
       captureEvent('report_started', { report_type: 'lost' });
     }
-  };
-
-  const requestLocation = () => {
-    setGeoError(false);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => setGeoError(true),
-      { enableHighAccuracy: true, timeout: 10_000 },
-    );
   };
 
   async function handleSubmit(formData: FormData) {
@@ -63,7 +54,7 @@ export function LostForm() {
 
     if (photos.length === 0) return setError(tb.errors.missingPhoto);
     if (photos.length > MAX_PHOTOS) return setError(t.tooManyPhotos);
-    if (!geo) return setError(tb.errors.missingLocation);
+    if (!location) return setError(tb.errors.missingLocation);
     if (!consent) return setError(tb.errors.missingConsent);
 
     try {
@@ -78,10 +69,11 @@ export function LostForm() {
       const request: CreateReportRequest = {
         reportType: 'lost',
         photoPaths,
-        geo,
+        geo: { lat: location.lat, lng: location.lng },
         eventDate,
         contact: { channel: 'whatsapp', value: whatsapp },
         consentAccepted: true,
+        ...(location.addressText ? { addressText: location.addressText } : {}),
         ...(marks ? { distinctiveMarks: marks } : {}),
       };
       const response = await fetch('/api/reports', {
@@ -95,7 +87,8 @@ export function LostForm() {
         throw new Error(body?.error?.message ?? tb.errors.generic);
       }
       const created = (await response.json()) as CreateReportResponse;
-      captureEvent('report_created', { report_type: 'lost' });
+      // location_source mide cuánta gente depende del respaldo manual.
+      captureEvent('report_created', { report_type: 'lost', location_source: location.source });
       captureEvent('candidates_shown', { count: created.candidates.length });
       setResult(created);
       setStage('done');
@@ -194,21 +187,7 @@ export function LostForm() {
         <PhotoPicker name="photos" multiple />
       </Field>
 
-      <Field label={t.locationLabel}>
-        <button type="button" onClick={requestLocation} className={secondaryButtonClass}>
-          {tb.useMyLocation}
-        </button>
-        {geo && (
-          <p className="mt-2 text-[14px] font-semibold text-encontrado-texto">
-            {tb.locationCaptured} ({geo.lat.toFixed(3)}, {geo.lng.toFixed(3)})
-          </p>
-        )}
-        {geoError && (
-          <p role="alert" className="mt-2 text-[14px] leading-[1.5] text-perdido-texto">
-            {tb.locationError}
-          </p>
-        )}
-      </Field>
+      <LocationField label={t.locationLabel} value={location} onChange={setLocation} />
 
       <Field label={t.dateLabel} htmlFor="eventDate">
         <input

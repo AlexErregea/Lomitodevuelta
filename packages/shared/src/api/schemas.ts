@@ -55,6 +55,12 @@ export const createReportRequestSchema = z.object({
   geo: geoPointSchema,
   /** Fecha del extravío o hallazgo (ISO, YYYY-MM-DD) */
   eventDate: z.string().date(),
+  /**
+   * Referencia humana de la zona ("Col. Roma Norte, Coyoacán"). La aporta quien
+   * reporta sin GPS (elige alcaldía) o como precisión adicional; la ficha
+   * pública la muestra en vez de las coordenadas difuminadas.
+   */
+  addressText: z.string().max(120).optional(),
   contact: z.object({
     channel: contactChannelSchema,
     /** E.164 para whatsapp (+52...), email para email */

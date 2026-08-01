@@ -72,9 +72,17 @@ Se corrigió el contraste de la paleta, que reprobaba WCAG AA: el ámbar origina
 `Landing/index.html` es el diseño HTML original del fundador, versionado como
 referencia de la reconstrucción en JSX. No se despliega.
 
-Pendiente en los flujos: fallback cuando el usuario **niega el permiso de
-ubicación** (hoy el formulario queda intransitable) y el rediseño del estado de
-espera de la IA.
+**Respaldo de ubicación sin GPS** (2026-07-31): quien niega el permiso de
+ubicación ya no queda atorado — antes el envío exigía coordenadas y no había
+forma de darlas, así que se perdía el reporte entero. `components/
+location-field.tsx` (compartido por los dos flujos) distingue el motivo real
+del fallo (permiso denegado vs GPS no disponible: "activa el GPS" no le sirve a
+quien negó el permiso) y ofrece **siempre** elegir alcaldía a mano
+(`lib/cdmx-alcaldias.ts`, centros aproximados) más una referencia opcional, que
+viajan como `addressText` y se muestran en la ficha. El evento `report_created`
+lleva `location_source` (`gps` | `manual`) para medir cuánto se usa el respaldo.
+
+Pendiente en los flujos: el rediseño del estado de espera de la IA.
 
 Dominio de matching (`packages/matching`) implementado y testeado (14 casos
 dorados). **Sprint 1 implementado en código** (2026-07-19): pipeline de visión
