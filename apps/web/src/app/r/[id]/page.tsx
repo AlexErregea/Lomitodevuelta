@@ -123,7 +123,7 @@ export default async function FichaPage({ params }: PageProps) {
 
       <p style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <ShareButton badge={badge} shareUrl={shareUrl} />
-        <Link href={isLost ? '/' : '/perdi'}>{isLost ? t.ctaLost : t.ctaFound}</Link>
+        <Link href={isLost ? '/encontre' : '/perdi'}>{isLost ? t.ctaLost : t.ctaFound}</Link>
       </p>
     </main>
   );

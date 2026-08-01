@@ -3,6 +3,14 @@
 import { useRef, useState } from 'react';
 import type { CreateReportRequest, CreateReportResponse } from '@lomito/shared';
 import { EditFichaForm } from '@/components/edit-ficha-form';
+import {
+  Field,
+  FlowHeading,
+  controlClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from '@/components/flow-shell';
+import { PhotoPicker } from '@/components/photo-picker';
 import { content } from '@/content/es-MX';
 import { captureEvent } from '@/lib/client/analytics';
 import { uploadPhoto } from '@/lib/client/upload';
@@ -99,41 +107,68 @@ export function LostForm() {
 
   if (result) {
     const manageToken = new URL(result.manageUrl).searchParams.get('t') ?? '';
+    const hasCandidates = result.candidates.length > 0;
     return (
       <section>
-        <h2>{result.candidates.length > 0 ? tr.candidatesHeading : tr.noCandidatesHeading}</h2>
-        {result.candidates.length === 0 && <p>{tr.noCandidatesBody}</p>}
-        <ul>
+        <h1 className="font-display text-[clamp(24px,5.5vw,30px)] font-bold leading-[1.2] tracking-[-.02em]">
+          {hasCandidates ? tr.candidatesHeading : tr.noCandidatesHeading}
+        </h1>
+        {/* Estado vacío: a baja densidad es lo que más gente va a ver, así que
+            se trata como parte del producto y no como un caso borde. */}
+        {!hasCandidates && (
+          <p className="mt-3 rounded-[12px] border border-borde bg-crema-card p-4 text-[15px] leading-[1.6] text-[#5b4b3a]">
+            {tr.noCandidatesBody}
+          </p>
+        )}
+
+        <ul className="mt-6 flex flex-col gap-3">
           {result.candidates.map((candidate) => (
-            <li key={candidate.reportId}>
+            <li
+              key={candidate.reportId}
+              className="flex gap-4 rounded-[14px] border border-borde bg-white p-3"
+            >
               {candidate.photoUrl && (
                 // img nativo a propósito: URL firmada efímera, next/image no aplica.
-                <img src={candidate.photoUrl} alt="" width={120} />
+                <img
+                  src={candidate.photoUrl}
+                  alt=""
+                  className="h-[92px] w-[92px] shrink-0 rounded-[10px] object-cover"
+                />
               )}
-              <p>
-                <strong>{tr.bandLabels[candidate.scoreBand] ?? candidate.scoreBand}</strong>
-                <br />
-                {candidate.explanation}
-              </p>
+              <div className="min-w-0">
+                <span className="inline-block rounded-full bg-crema-2 px-[10px] py-1 text-[12px] font-bold uppercase tracking-[.04em] text-ambar-texto">
+                  {tr.bandLabels[candidate.scoreBand] ?? candidate.scoreBand}
+                </span>
+                <p className="mt-2 text-[14px] leading-[1.5] text-tinta">{candidate.explanation}</p>
+              </div>
             </li>
           ))}
         </ul>
 
-        <h3>{t.editHeading}</h3>
-        <p>{t.editBody}</p>
-        <EditFichaForm
-          reportId={result.reportId}
-          manageToken={manageToken}
-          initialAttributes={result.extracted?.attributes ?? {}}
-          initialMarks={null}
-        />
+        <div className="mt-8 rounded-[14px] border border-borde bg-white p-4">
+          <h2 className="font-display text-lg font-bold">{t.editHeading}</h2>
+          <p className="mt-1 text-[14px] leading-[1.55] text-[#5b4b3a]">{t.editBody}</p>
+          <div className="mt-4">
+            <EditFichaForm
+              reportId={result.reportId}
+              manageToken={manageToken}
+              initialAttributes={result.extracted?.attributes ?? {}}
+              initialMarks={null}
+            />
+          </div>
+        </div>
 
-        <h3>{tr.manageLinkHeading}</h3>
-        <p>{tr.manageLinkBody}</p>
-        <p>
-          <code>{result.manageUrl}</code>{' '}
+        {/* El enlace de gestión es lo único que le devuelve el control a quien
+            reportó sin cuenta: se destaca, no se esconde al final. */}
+        <div className="mt-6 rounded-[14px] border border-borde bg-crema-card p-4">
+          <h2 className="font-display text-lg font-bold">{tr.manageLinkHeading}</h2>
+          <p className="mt-1 text-[14px] leading-[1.55] text-[#5b4b3a]">{tr.manageLinkBody}</p>
+          <code className="mt-3 block overflow-x-auto whitespace-nowrap rounded-[8px] border border-borde bg-white px-3 py-2 text-[13px] text-tinta">
+            {result.manageUrl}
+          </code>
           <button
             type="button"
+            className={`${secondaryButtonClass} mt-3 w-full`}
             onClick={async () => {
               await navigator.clipboard.writeText(result.manageUrl);
               setCopied(true);
@@ -141,10 +176,11 @@ export function LostForm() {
           >
             {copied ? tr.copied : tr.copyLink}
           </button>
-        </p>
-        <p>
-          <a href={result.shareUrl}>🔗 {content.ficha.shareButton}</a>
-        </p>
+        </div>
+
+        <a href={result.shareUrl} className={`${primaryButtonClass} mt-4 block text-center`}>
+          {content.ficha.shareButton}
+        </a>
       </section>
     );
   }
@@ -152,63 +188,95 @@ export function LostForm() {
   const busy = stage !== 'idle';
   return (
     <form action={handleSubmit} onFocusCapture={markStarted}>
-      <h2>{t.heading}</h2>
+      <FlowHeading title={t.heading} promise={t.promise} />
 
-      <label>
-        {t.photosLabel}
-        <br />
-        <input type="file" name="photos" accept="image/*" multiple required />
-      </label>
+      <Field label={t.photosLabel}>
+        <PhotoPicker name="photos" multiple />
+      </Field>
 
-      <p>
-        {t.locationLabel}
-        <br />
-        <button type="button" onClick={requestLocation}>
+      <Field label={t.locationLabel}>
+        <button type="button" onClick={requestLocation} className={secondaryButtonClass}>
           {tb.useMyLocation}
-        </button>{' '}
+        </button>
         {geo && (
-          <span>
-            ✅ {tb.locationCaptured} ({geo.lat.toFixed(3)}, {geo.lng.toFixed(3)})
-          </span>
+          <p className="mt-2 text-[14px] font-semibold text-encontrado-texto">
+            {tb.locationCaptured} ({geo.lat.toFixed(3)}, {geo.lng.toFixed(3)})
+          </p>
         )}
-        {geoError && <span role="alert"> ⚠️ {tb.locationError}</span>}
-      </p>
+        {geoError && (
+          <p role="alert" className="mt-2 text-[14px] leading-[1.5] text-perdido-texto">
+            {tb.locationError}
+          </p>
+        )}
+      </Field>
 
-      <label>
-        {t.dateLabel}
-        <br />
-        <input type="date" name="eventDate" defaultValue={new Date().toISOString().slice(0, 10)} required />
-      </label>
+      <Field label={t.dateLabel} htmlFor="eventDate">
+        <input
+          id="eventDate"
+          type="date"
+          name="eventDate"
+          defaultValue={new Date().toISOString().slice(0, 10)}
+          required
+          className={controlClass}
+        />
+      </Field>
 
-      <p>
-        <label>
-          {t.marksLabel}
-          <br />
-          <textarea name="distinctiveMarks" placeholder={t.marksPlaceholder} maxLength={500} rows={2} />
+      <Field label={t.marksLabel} htmlFor="distinctiveMarks">
+        <textarea
+          id="distinctiveMarks"
+          name="distinctiveMarks"
+          placeholder={t.marksPlaceholder}
+          maxLength={500}
+          rows={3}
+          className={`${controlClass} resize-none`}
+        />
+      </Field>
+
+      <Field label={tb.whatsappLabel} htmlFor="whatsapp">
+        <input
+          id="whatsapp"
+          type="tel"
+          name="whatsapp"
+          placeholder={tb.whatsappPlaceholder}
+          required
+          minLength={10}
+          className={controlClass}
+        />
+      </Field>
+
+      <div className="mb-6 rounded-[12px] border border-borde bg-crema-card p-4">
+        <label htmlFor="consent" className="grid grid-cols-[auto_1fr] items-start gap-3">
+          <input id="consent" type="checkbox" name="consent" required className="mt-[3px] h-[18px] w-[18px] accent-[#a6661b]" />
+          <span className="text-[14px] leading-[1.55] text-[#5b4b3a]">
+            {tb.consentLabel}{' '}
+            <a
+              href="/privacidad"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-ambar-texto underline"
+            >
+              {tb.privacyLink}
+            </a>
+          </span>
         </label>
-      </p>
+      </div>
 
-      <label>
-        {tb.whatsappLabel}
-        <br />
-        <input type="tel" name="whatsapp" placeholder={tb.whatsappPlaceholder} required minLength={10} />
-      </label>
-
-      <p>
-        <label>
-          <input type="checkbox" name="consent" required /> {tb.consentLabel}
-        </label>{' '}
-        <a href="/privacidad" target="_blank">
-          {tb.privacyLink}
-        </a>
-      </p>
-
-      {error && <p role="alert">⚠️ {error}</p>}
+      {error && (
+        <p role="alert" className="mb-4 rounded-[10px] border border-perdido/30 bg-perdido/5 p-3 text-[14px] font-semibold text-perdido-texto">
+          {error}
+        </p>
+      )}
       {busy && stage !== 'done' && (
-        <p aria-live="polite">⏳ {tb.stages[stage === 'uploading' ? 'uploading' : stage === 'analyzing' ? 'analyzing' : 'searching']}</p>
+        <p
+          aria-live="polite"
+          className="mb-4 flex items-center gap-[10px] rounded-[10px] border border-borde bg-crema-card p-3 text-[14px] font-semibold text-tinta"
+        >
+          <span className="h-[14px] w-[14px] shrink-0 animate-spin rounded-full border-2 border-ambar border-t-transparent" />
+          {tb.stages[stage === 'uploading' ? 'uploading' : stage === 'analyzing' ? 'analyzing' : 'searching']}
+        </p>
       )}
 
-      <button type="submit" disabled={busy}>
+      <button type="submit" disabled={busy} className={primaryButtonClass}>
         {t.submit}
       </button>
     </form>

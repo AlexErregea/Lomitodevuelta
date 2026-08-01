@@ -1,0 +1,109 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   Tokens de marca (paleta y fuentes de la landing). Con Tailwind v4, cada
+   variable de @theme genera utilidades: --color-crema → bg-crema/text-crema,
+   --font-display → font-display. Las fuentes las provee next/font (layout.tsx)
+   como CSS variables --font-space-grotesk / --font-work-sans.
+   ========================================================================== */
+@theme {
+  --color-crema: #f5eee1; /* fondo principal */
+  --color-crema-2: #efe6d6; /* franja de props de valor */
+  --color-crema-card: #fbf6ec; /* tarjetas claras */
+  --color-tinta: #2e241c; /* texto/fondo café oscuro */
+  --color-tinta-2: #241b14; /* footer */
+  --color-borde: #e6dcc7;
+  /* Acento primario. Se oscureció respecto del diseño original (#c0873f) por
+     accesibilidad: aquel daba 2.9:1 con texto blanco y reprobaba WCAG AA (4.5:1
+     mínimo para texto normal). Este tono conserva el ocre cálido de la marca y
+     alcanza 4.6:1 sobre blanco. Ver docs/security-privacy.md para el criterio
+     general de "el producto tiene que servirle a cualquiera". */
+  --color-ambar: #a6661b; /* acento primario — 4.6:1 con texto blanco */
+  --color-ambar-oscuro: #8a5416; /* hover — 6.3:1 con texto blanco */
+  /* Ámbar para TEXTO sobre fondo crema (enlaces, acentos tipográficos): el
+     ámbar primario sobre crema da 4.0:1, insuficiente para texto pequeño. */
+  --color-ambar-texto: #8a5416; /* 5.4:1 sobre crema */
+  --color-ambar-claro: #e0b878; /* decorativo: fondos suaves, nunca texto */
+  --color-perdido: #be4a2a; /* badge PERDIDO (consistente con la ficha) */
+  --color-encontrado: #5f7a2e; /* badge ENCONTRADO */
+  /* Variantes para TEXTO sobre crema. Los colores de badge de arriba están
+     pensados como fondo con texto blanco; usados como texto sobre crema se
+     quedan en 4.3:1 y 4.2:1, apenas por debajo de AA. Estos sí pasan. */
+  --color-perdido-texto: #b04326; /* 4.9:1 sobre crema — mensajes de error */
+  --color-encontrado-texto: #556e28; /* 5.0:1 sobre crema — confirmaciones */
+  --color-verde: #9dbe4e; /* verde de coincidencia */
+
+  --font-display: var(--font-space-grotesk), sans-serif;
+  --font-sans: var(--font-work-sans), sans-serif;
+}
+
+/* Animaciones del módulo de inteligencia del hero (del diseño original). */
+@keyframes scan {
+  0% {
+    top: 8%;
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 0.45;
+  }
+  100% {
+    top: 86%;
+    opacity: 0.9;
+  }
+}
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* ==========================================================================
+   Base layer: Tailwind v4 aplica Preflight (reset) a TODA la app. Las páginas
+   MVP (flujos A/B, ficha, gestión) usan controles nativos "desnudos"; sin esto
+   quedarían inservibles. Estos defaults les devuelven chrome usable sin
+   imponer un diseño (la landing usa sus propias utilidades y no los hereda).
+   ========================================================================== */
+@layer base {
+  body {
+    font-family: var(--font-sans);
+  }
+  /* Solo aplica a controles sin clases utilitarias (los de los flujos MVP). */
+  button:not([class]),
+  input:not([class]),
+  textarea:not([class]),
+  select:not([class]) {
+    font: inherit;
+    /* 0.7rem vertical + line-height deja el control en ~44px: el mínimo táctil
+       recomendado (WCAG 2.5.5). Antes era 0.4rem → ~32px, difícil de atinar en
+       móvil, que es el 90% de nuestro tráfico esperado. */
+    padding: 0.7rem 0.75rem;
+    border: 1px solid var(--color-borde);
+    border-radius: 0.5rem;
+    background: #fff;
+  }
+  input[type='checkbox']:not([class]),
+  input[type='radio']:not([class]) {
+    padding: 0;
+    min-width: 1.15rem;
+    min-height: 1.15rem;
+  }
+  button:not([class]) {
+    background: var(--color-ambar);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+  }
+  button:not([class]):disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  a:not([class]) {
+    color: var(--color-ambar-texto);
+    text-decoration: underline;
+  }
+}

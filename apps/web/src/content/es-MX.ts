@@ -9,8 +9,142 @@ export const content = {
     title: 'LomitoDeVuelta 🐕',
     tagline: 'Sube una foto y la IA busca por ti.',
   },
+  // Landing (puerta de entrada, ruta /). Copy del diseño del fundador.
+  landing: {
+    brandA: 'Lomito',
+    brandB: 'DeVuelta',
+    nav: {
+      como: 'Cómo funciona',
+      cerca: 'Cerca de ti',
+      cta: 'Reportar perro',
+    },
+    hero: {
+      badge: 'Gratis · Hecho para México',
+      titleA: 'Ayúdanos a traerlo ',
+      titleAccent: 'de vuelta a casa.',
+      subtitle:
+        'Sube su foto y nosotros hacemos el resto: la comparamos con los perros que aparecen cerca de ti y te avisamos apenas alguien lo vea. Sin costo, sin trámites.',
+      ctaLost: 'Perdí a mi perro',
+      ctaFound: 'Encontré un perro',
+      note: 'Listo en menos de 2 minutos.',
+      moduleTag: 'Así lo encontramos por ti',
+      moduleYours: 'tu perro',
+      moduleSimilar: 'se parecen',
+      moduleSeen: 'visto ayer',
+      moduleQuote: '"Creemos que vimos a tu perro en Del Valle."',
+      moduleSub: 'Comparamos su carita; tú confirmas.',
+    },
+    features: [
+      {
+        title: 'Alertas por zona',
+        body: 'Los vecinos cerca de donde se perdió reciben aviso al instante — no solo tus contactos.',
+      },
+      {
+        title: 'Compara sus rasgos',
+        body: 'Cruzamos su foto con los perros reportados cerca por su hocico, manchas y forma — no solo por suerte.',
+      },
+      {
+        title: 'Gratis, sin letras chiquitas',
+        body: 'Publicar un perro perdido o encontrado no cuesta nada. Nunca.',
+      },
+    ],
+    cerca: {
+      heading: 'Pasando cerca de ti ahora',
+      body: 'No necesitas una ciudad llena de gente usándolo: cada foto que se sube ya sirve para encontrar a alguien.',
+      cards: [
+        {
+          type: 'lost' as const,
+          name: 'Toby',
+          meta: 'Álvaro Obregón · hace 3 h · mestizo café',
+          status: '2 posibles coincidencias',
+          statusHighlight: true,
+        },
+        {
+          type: 'found' as const,
+          name: 'Perrito',
+          meta: 'Iztapalapa · hace 1 día · negro con blanco',
+          status: 'Busca a su familia',
+          statusHighlight: false,
+        },
+        {
+          type: 'lost' as const,
+          name: 'Canela',
+          meta: 'Tlalpan · hace 6 h · chica, collar rojo',
+          status: 'Buscando en tu zona…',
+          statusHighlight: false,
+        },
+      ],
+    },
+    como: {
+      heading: 'Cómo funciona',
+      steps: [
+        {
+          n: '1',
+          title: 'Subes su foto',
+          body: 'Una foto, dónde se perdió y cómo es. Con eso basta.',
+          accent: false,
+        },
+        {
+          n: '2',
+          title: 'Avisamos a tu zona',
+          body: 'Comparamos su foto con los perros reportados cerca y avisamos a los vecinos. Se comparte fácil por WhatsApp.',
+          accent: false,
+        },
+        {
+          n: '3',
+          title: 'Se reencuentran',
+          body: 'Cuando algo coincide, te mostramos las fotos lado a lado para que confirmes y vayas por él.',
+          accent: true,
+        },
+      ],
+      badges: ['Nunca cobramos por publicar', 'Hecho para México', 'Funciona desde el primer reporte'],
+    },
+    finalCta: {
+      heading: '¿Se te perdió tu lomito?',
+      body: 'Entre todos lo encontramos más rápido.',
+      cta: 'Reportar ahora',
+    },
+    footer: {
+      tagline: 'Reunimos perros perdidos con su familia en México. Gratis, siempre.',
+      domain: 'lomitodevuelta.mx',
+      productHeading: 'Producto',
+      productLinks: {
+        lost: 'Reportar perdido',
+        found: 'Reportar encontrado',
+        como: 'Cómo funciona',
+      },
+      socialHeading: 'Síguenos',
+      // URLs reales pendientes: el fundador las rellena (placeholders inofensivos).
+      social: [
+        { label: 'Instagram · @lomitodevuelta', href: 'https://instagram.com/lomitodevuelta' },
+        { label: 'Facebook · @lomitodevuelta', href: 'https://facebook.com/lomitodevuelta' },
+        { label: 'TikTok · @lomitodevuelta', href: 'https://tiktok.com/@lomitodevuelta' },
+      ],
+      legal: 'LomitoDeVuelta nunca cobra por publicar perros perdidos o encontrados. © 2026 lomitodevuelta.mx',
+    },
+    badges: {
+      lost: 'PERDIDO',
+      found: 'ENCONTRADO',
+    },
+  },
+  // Marco común de los flujos de reporte (cabecera, controles compartidos).
+  flowShell: {
+    backHome: 'Volver al inicio',
+  },
+  // Selector de fotos: reemplaza el texto del control nativo ("Ningún archivo
+  // seleccionado"), que en el flujo B es la acción más importante de la app.
+  photoPicker: {
+    ctaOne: 'Tomar o elegir una foto',
+    ctaMany: 'Tomar o elegir fotos',
+    hintOne: 'Toca para usar la cámara o tu galería.',
+    hintMany: 'Toca para usar la cámara o tu galería. La primera será la principal.',
+    selectedOne: '1 foto lista',
+    selectedMany: 'fotos listas',
+    change: 'Cambiar',
+  },
   flowB: {
     heading: 'Encontré un perro',
+    promise: 'Con una foto basta. La comparamos con los perros reportados como perdidos cerca de ti y avisamos a su familia.',
     photoLabel: 'Foto del perro (una basta)',
     locationLabel: 'Ubicación donde lo encontraste',
     useMyLocation: 'Usar mi ubicación actual',
@@ -40,6 +174,7 @@ export const content = {
   },
   flowA: {
     heading: 'Perdí a mi perro',
+    promise: 'Sube sus fotos: la IA arma su ficha y busca de inmediato entre los perros que ya reportaron encontrados.',
     homeLink: '¿Perdiste a tu perro? Repórtalo aquí',
     photosLabel: 'Fotos de tu perro (1 a 5; la primera es la principal)',
     tooManyPhotos: 'Máximo 5 fotos.',

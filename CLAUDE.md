@@ -41,6 +41,41 @@ tú lo técnico dentro de las decisiones ya registradas.
 
 ## Estado del proyecto
 
+**Landing / cambio de rutas** (2026-07-31): la raíz `/` es ahora la landing de
+marketing (Server Component estático, `apps/web/src/app/page.tsx`, copy en
+`content.landing`). El Flujo B ("encontré") se movió de `/` a **`/encontre`**.
+Se introdujo **Tailwind CSS v4** (`globals.css` con `@theme` de marca + `@layer
+base` para no romper los controles nativos de los flujos MVP tras Preflight) y
+fuentes Space Grotesk/Work Sans vía `next/font`. Los CTAs de la landing enrutan
+a `/perdi` y `/encontre`.
+
+**Sistema visual aplicado a los flujos + accesibilidad** (2026-07-31): `/perdi`
+y `/encontre` dejaron de ser los formularios "funcionales aunque feos" de los
+Sprints 1-2 y ahora usan los tokens de marca. Componentes nuevos:
+`components/brand.tsx` (Logo y logotipo, extraídos de la landing para que los
+flujos usen la misma marca), `components/flow-shell.tsx` (marco de página +
+primitivos `Field` / `controlClass` / `primaryButtonClass`) y
+`components/photo-picker.tsx` (zona de foto tocable; el `<input>` sigue nativo
+con su `name`, no cambió nada del envío). **La lógica de los Sprints 1-3 no se
+tocó: el cambio es de presentación.**
+
+Se corrigió el contraste de la paleta, que reprobaba WCAG AA: el ámbar original
+(`#c0873f`) daba 3.1:1 con texto blanco. Ahora `--color-ambar` es `#a6661b`
+(4.6:1). Reglas que se derivan de eso y hay que respetar:
+
+- Sobre fondos **oscuros** (footer, `tinta`/`tinta-2`) el ámbar primario NO
+  contrasta: usar `ambar-claro`.
+- Para **texto** ámbar sobre crema: `ambar-texto`, no `ambar` (4.0 vs 5.4:1).
+- `perdido`/`encontrado` son colores de **badge** (fondo con texto blanco); como
+  texto usar `perdido-texto`/`encontrado-texto`.
+
+`Landing/index.html` es el diseño HTML original del fundador, versionado como
+referencia de la reconstrucción en JSX. No se despliega.
+
+Pendiente en los flujos: fallback cuando el usuario **niega el permiso de
+ubicación** (hoy el formulario queda intransitable) y el rediseño del estado de
+espera de la IA.
+
 Dominio de matching (`packages/matching`) implementado y testeado (14 casos
 dorados). **Sprint 1 implementado en código** (2026-07-19): pipeline de visión
 completo (Replicate + Claude Haiku con salida estructurada validada por Zod),
