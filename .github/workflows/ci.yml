@@ -16,9 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Sin `version:` a propósito: la versión de pnpm es la del campo
+      # `packageManager` del package.json raíz, que es también la que usan
+      # Vercel y la máquina del fundador. Si se declara aquí además de allá,
+      # la action falla con ERR_PNPM_BAD_PM_VERSION al detectar dos fuentes.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 11
 
       - uses: actions/setup-node@v4
         with:

@@ -1,6 +1,7 @@
 {
   "name": "lomitodevuelta",
   "private": true,
+  "packageManager": "pnpm@11.13.1",
   "engines": {
     "node": ">=20"
   },
