@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { DogAttributes, RenewReportResponse } from '@lomito/shared';
 import { EditFichaForm } from '@/components/edit-ficha-form';
+import { Card, dangerButtonClass, secondaryButtonClass } from '@/components/flow-shell';
 import { content } from '@/content/es-MX';
 
 // ============================================================================
@@ -51,48 +52,77 @@ export function ManagePanel({
     setDeleted(true);
   }
 
-  if (deleted) return <p>✅ {t.deleted}</p>;
+  if (deleted) {
+    return (
+      <Card tone="crema">
+        <p className="text-[15px] font-semibold leading-[1.55] text-encontrado-texto">{t.deleted}</p>
+      </Card>
+    );
+  }
+
+  const activo = status === 'active';
 
   return (
     <>
-      <p>
-        {t.statusLabel}: <strong>{t.statusValues[status] ?? status}</strong>
-        {expiresAt && (
-          <>
-            {' · '}
-            {t.expiresLabel}: <strong>{expiresAt.slice(0, 10)}</strong>
-          </>
-        )}
-        <br />
-        <a href={`/r/${reportId}`}>{t.viewFicha}</a>
-      </p>
+      {/* Estado y vigencia: lo primero que la persona quiere saber al volver. */}
+      <Card tone="crema">
+        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
+          <span className="text-[14px] text-[#5b4b3a]">
+            {t.statusLabel}:{' '}
+            <strong className={activo ? 'text-encontrado-texto' : 'text-tinta'}>
+              {t.statusValues[status] ?? status}
+            </strong>
+          </span>
+          {expiresAt && (
+            <span className="text-[14px] text-[#5b4b3a]">
+              {t.expiresLabel}: <strong className="text-tinta">{expiresAt.slice(0, 10)}</strong>
+            </span>
+          )}
+        </div>
+        <a
+          href={`/r/${reportId}`}
+          className="mt-3 inline-block text-[14px] font-semibold text-ambar-texto underline"
+        >
+          {t.viewFicha}
+        </a>
+      </Card>
 
-      <h2>{t.editHeading}</h2>
-      <EditFichaForm
-        reportId={reportId}
-        manageToken={manageToken}
-        initialAttributes={attributes}
-        initialMarks={distinctiveMarks}
-      />
+      <Card title={t.editHeading}>
+        <EditFichaForm
+          reportId={reportId}
+          manageToken={manageToken}
+          initialAttributes={attributes}
+          initialMarks={distinctiveMarks}
+        />
+      </Card>
 
-      <h2>{t.renewHeading}</h2>
-      <p>{t.renewBody}</p>
-      <p>
-        <button type="button" onClick={handleRenew}>
+      <Card title={t.renewHeading} body={t.renewBody}>
+        <button type="button" onClick={handleRenew} className={secondaryButtonClass}>
           {t.renewButton}
-        </button>{' '}
-        {renewState && <span>✅ {t.renewed(renewState)}</span>}
-        {renewFailed && <span role="alert">⚠️ {t.renewError}</span>}
-      </p>
+        </button>
+        {renewState && (
+          <p className="mt-2 text-[14px] font-semibold text-encontrado-texto" aria-live="polite">
+            {t.renewed(renewState)}
+          </p>
+        )}
+        {renewFailed && (
+          <p role="alert" className="mt-2 text-[14px] font-semibold text-perdido-texto">
+            {t.renewError}
+          </p>
+        )}
+      </Card>
 
-      <h2>{t.deleteHeading}</h2>
-      <p>{t.deleteBody}</p>
-      <p>
-        <button type="button" onClick={handleDelete} style={{ color: '#C0392B' }}>
+      {/* Cancelación (ARCO): visible y sin trabas, pero sin competir con lo demás. */}
+      <Card title={t.deleteHeading} body={t.deleteBody} tone="crema">
+        <button type="button" onClick={handleDelete} className={dangerButtonClass}>
           {t.deleteButton}
-        </button>{' '}
-        {deleteFailed && <span role="alert">⚠️ {t.deleteError}</span>}
-      </p>
+        </button>
+        {deleteFailed && (
+          <p role="alert" className="mt-2 text-[14px] font-semibold text-perdido-texto">
+            {t.deleteError}
+          </p>
+        )}
+      </Card>
     </>
   );
 }

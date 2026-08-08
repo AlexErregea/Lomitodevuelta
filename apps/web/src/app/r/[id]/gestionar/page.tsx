@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FlowShell, FlowHeading } from '@/components/flow-shell';
 import { MatchesPanel } from '@/components/matches-panel';
 import { content } from '@/content/es-MX';
 import { parseAttributes } from '@/lib/candidates';
@@ -29,11 +30,15 @@ export default async function GestionarPage({
   const { id } = await params;
   const { t: token } = await searchParams;
 
+  // Mismo mensaje para token inválido, id inexistente o reporte borrado: no hay
+  // nada que un atacante pueda deducir de la diferencia.
   const invalid = (
-    <main style={{ maxWidth: 480, margin: '0 auto', padding: '1rem' }}>
-      <h1>{t.invalidTitle}</h1>
-      <p>{t.invalidBody}</p>
-    </main>
+    <FlowShell>
+      <div className="rounded-[14px] border border-borde bg-crema-card p-5">
+        <h1 className="font-display text-[22px] font-bold leading-[1.2]">{t.invalidTitle}</h1>
+        <p className="mt-2 text-[15px] leading-[1.6] text-[#5b4b3a]">{t.invalidBody}</p>
+      </div>
+    </FlowShell>
   );
 
   if (!idSchema.safeParse(id).success || !token) return invalid;
@@ -55,11 +60,18 @@ export default async function GestionarPage({
   const matches = await loadReportMatches(dog.id as string);
 
   return (
-    <main style={{ maxWidth: 480, margin: '0 auto', padding: '1rem' }}>
-      <h1>{t.heading}</h1>
+    <FlowShell>
+      <FlowHeading title={t.heading} promise={t.promise} />
 
-      <h2>{content.matches.heading}</h2>
-      <MatchesPanel matches={matches} manageToken={token} />
+      {/* Las coincidencias van primero: es lo único que puede cambiar sin que
+          la persona haga nada, y la razón por la que vuelve a abrir el enlace. */}
+      <section className="mb-4 rounded-[14px] border border-borde bg-white p-4">
+        <h2 className="font-display text-lg font-bold">{content.matches.heading}</h2>
+        <p className="mt-1 text-[14px] leading-[1.55] text-[#5b4b3a]">{t.matchesBody}</p>
+        <div className="mt-4">
+          <MatchesPanel matches={matches} manageToken={token} />
+        </div>
+      </section>
 
       <ManagePanel
         reportId={dog.id}
@@ -69,6 +81,6 @@ export default async function GestionarPage({
         attributes={parseAttributes(dog.attributes)}
         distinctiveMarks={(dog.distinctive_marks as string | null) ?? null}
       />
-    </main>
+    </FlowShell>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { DogAttributes, UpdateReportRequest } from '@lomito/shared';
+import { Field, controlClass, primaryButtonClass } from '@/components/flow-shell';
 import { content } from '@/content/es-MX';
 
 // ============================================================================
@@ -68,43 +69,74 @@ export function EditFichaForm({
 
   return (
     <form action={handleSubmit}>
-      <label>
-        {t.breedMix}
-        <br />
-        <input name="breedMix" defaultValue={initialAttributes.breedMix?.join(', ') ?? ''} />
-      </label>
-      <br />
-      <label>
-        {t.colors}
-        <br />
-        <input name="colors" defaultValue={initialAttributes.colors?.join(', ') ?? ''} />
-      </label>
-      <br />
-      {SELECT_FIELDS.map((field) => (
-        <label key={field} style={{ display: 'inline-block', marginRight: '1rem' }}>
-          {t[field]}
-          <br />
-          <select name={field} defaultValue={(initialAttributes[field] as string | undefined) ?? ''}>
-            <option value="">{t.unknown}</option>
-            {Object.entries(t.options[field] ?? {}).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-      ))}
-      <p style={{ fontSize: '0.85rem' }}>{t.sexConfirmedHint}</p>
-      <label>
-        {t.distinctiveMarks}
-        <br />
-        <textarea name="distinctiveMarks" defaultValue={initialMarks ?? ''} maxLength={500} rows={2} />
-      </label>
-      <br />
-      <button type="submit" disabled={status === 'saving'}>
+      <Field label={t.breedMix} htmlFor="breedMix">
+        <input
+          id="breedMix"
+          name="breedMix"
+          defaultValue={initialAttributes.breedMix?.join(', ') ?? ''}
+          className={controlClass}
+        />
+      </Field>
+
+      <Field label={t.colors} htmlFor="colors">
+        <input
+          id="colors"
+          name="colors"
+          defaultValue={initialAttributes.colors?.join(', ') ?? ''}
+          className={controlClass}
+        />
+      </Field>
+
+      {/* Los cuatro desplegables en rejilla: son campos cortos y emparejados,
+          uno por renglón desperdiciaría la pantalla y alargaría el formulario. */}
+      <div className="mb-5 grid grid-cols-2 gap-3">
+        {SELECT_FIELDS.map((field) => (
+          <div key={field}>
+            <label htmlFor={field} className="block text-[15px] font-semibold text-tinta">
+              {t[field]}
+            </label>
+            <select
+              id={field}
+              name={field}
+              defaultValue={(initialAttributes[field] as string | undefined) ?? ''}
+              className={`${controlClass} mt-2`}
+            >
+              <option value="">{t.unknown}</option>
+              {Object.entries(t.options[field] ?? {}).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ))}
+      </div>
+
+      {/* Elegir el sexo lo marca como confirmado por humano y activa el gate del
+          score: la advertencia va junto a los controles, no al final. */}
+      <p className="mb-5 rounded-[10px] border border-borde bg-crema-card p-3 text-[13px] leading-[1.5] text-[#5b4b3a]">
+        {t.sexConfirmedHint}
+      </p>
+
+      <Field label={t.distinctiveMarks} htmlFor="distinctiveMarks">
+        <textarea
+          id="distinctiveMarks"
+          name="distinctiveMarks"
+          defaultValue={initialMarks ?? ''}
+          maxLength={500}
+          rows={3}
+          className={`${controlClass} resize-none`}
+        />
+      </Field>
+
+      <button type="submit" disabled={status === 'saving'} className={primaryButtonClass}>
         {status === 'saved' ? t.saved : t.save}
       </button>
-      {status === 'error' && <span role="alert"> ⚠️ {t.saveError}</span>}
+      {status === 'error' && (
+        <p role="alert" className="mt-2 text-[14px] font-semibold text-perdido-texto">
+          {t.saveError}
+        </p>
+      )}
     </form>
   );
 }

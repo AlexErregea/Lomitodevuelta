@@ -97,4 +97,40 @@ export const primaryButtonClass =
 /** Botón secundario sobre crema (ubicación, acciones de apoyo). */
 export const secondaryButtonClass =
   'rounded-[10px] border-[1.5px] border-[#cdbb9d] bg-white px-[18px] py-[11px] text-[15px] font-semibold ' +
-  'text-tinta hover:border-ambar focus:outline-none focus:ring-2 focus:ring-ambar/30';
+  'text-tinta hover:border-ambar focus:outline-none focus:ring-2 focus:ring-ambar/30 ' +
+  'disabled:cursor-default disabled:opacity-60';
+
+/**
+ * Botón destructivo (borrar reporte). Deliberadamente de bajo contraste: es una
+ * acción legítima del derecho de cancelación (ARCO) y no se esconde, pero
+ * tampoco compite visualmente con las acciones que reúnen perros con su familia.
+ */
+export const dangerButtonClass =
+  'rounded-[10px] border-[1.5px] border-perdido/40 bg-white px-[18px] py-[11px] text-[15px] font-semibold ' +
+  'text-perdido-texto hover:border-perdido focus:outline-none focus:ring-2 focus:ring-perdido/30 ' +
+  'disabled:cursor-default disabled:opacity-60';
+
+/**
+ * Bloque de contenido del panel de gestión. `tone` distingue lo informativo
+ * (crema) de lo accionable (blanco), para que la página se lea de un vistazo.
+ */
+export function Card({
+  title,
+  body,
+  tone = 'blanco',
+  children,
+}: {
+  title?: string;
+  body?: string;
+  tone?: 'blanco' | 'crema';
+  children?: ReactNode;
+}) {
+  const fondo = tone === 'crema' ? 'bg-crema-card' : 'bg-white';
+  return (
+    <section className={`mb-4 rounded-[14px] border border-borde ${fondo} p-4`}>
+      {title && <h2 className="font-display text-lg font-bold">{title}</h2>}
+      {body && <p className="mt-1 text-[14px] leading-[1.55] text-[#5b4b3a]">{body}</p>}
+      {children && <div className={title || body ? 'mt-4' : ''}>{children}</div>}
+    </section>
+  );
+}

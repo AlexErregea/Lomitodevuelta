@@ -257,6 +257,8 @@ export const content = {
   },
   manage: {
     heading: 'Gestionar tu reporte',
+    promise: 'Desde aquí revisas coincidencias, corriges la ficha, renuevas la vigencia o borras todo. No necesitas cuenta: este enlace es tu llave.',
+    matchesBody: 'Cuando el sistema encuentra un perro que podría ser el tuyo, aparece aquí y te avisamos por WhatsApp.',
     invalidTitle: 'Enlace de gestión inválido',
     invalidBody:
       'El enlace no corresponde a ningún reporte activo. Si perdiste tu enlace, se te puede reenviar al MISMO WhatsApp con el que creaste el reporte.',
