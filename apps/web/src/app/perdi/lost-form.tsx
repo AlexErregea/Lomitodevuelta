@@ -183,8 +183,8 @@ export function LostForm() {
     <form action={handleSubmit} onFocusCapture={markStarted}>
       <FlowHeading title={t.heading} promise={t.promise} />
 
-      <Field label={t.photosLabel}>
-        <PhotoPicker name="photos" multiple />
+      <Field label={t.photosLabel} htmlFor="photos">
+        <PhotoPicker id="photos" name="photos" multiple />
       </Field>
 
       <LocationField label={t.locationLabel} value={location} onChange={setLocation} />
@@ -225,7 +225,7 @@ export function LostForm() {
 
       <div className="mb-6 rounded-[12px] border border-borde bg-crema-card p-4">
         <label htmlFor="consent" className="grid grid-cols-[auto_1fr] items-start gap-3">
-          <input id="consent" type="checkbox" name="consent" required className="mt-[3px] h-[18px] w-[18px] accent-[#a6661b]" />
+          <input id="consent" type="checkbox" name="consent" required className="mt-[3px] h-[18px] w-[18px] accent-ambar" />
           <span className="text-[14px] leading-[1.55] text-[#5b4b3a]">
             {tb.consentLabel}{' '}
             <a

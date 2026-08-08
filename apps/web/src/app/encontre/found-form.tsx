@@ -107,8 +107,8 @@ export function FoundForm() {
     <form action={handleSubmit} onFocusCapture={markStarted}>
       <FlowHeading title={t.heading} promise={t.promise} />
 
-      <Field label={t.photoLabel}>
-        <PhotoPicker name="photo" capture />
+      <Field label={t.photoLabel} htmlFor="photo">
+        <PhotoPicker id="photo" name="photo" capture />
       </Field>
 
       <LocationField label={t.locationLabel} value={location} onChange={setLocation} />
@@ -151,7 +151,7 @@ export function FoundForm() {
           líneas siguientes no queden bajo la casilla. */}
       <div className="mb-6 rounded-[12px] border border-borde bg-crema-card p-4">
         <label htmlFor="consent" className="grid grid-cols-[auto_1fr] items-start gap-3">
-          <input id="consent" type="checkbox" name="consent" required className="mt-[3px] h-[18px] w-[18px] accent-[#a6661b]" />
+          <input id="consent" type="checkbox" name="consent" required className="mt-[3px] h-[18px] w-[18px] accent-ambar" />
           <span className="text-[14px] leading-[1.55] text-[#5b4b3a]">
             {t.consentLabel}{' '}
             <a

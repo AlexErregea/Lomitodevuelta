@@ -63,11 +63,20 @@ export function Field({
   htmlFor?: string;
   children: ReactNode;
 }) {
+  // Sin `htmlFor` no se emite un <label>: un <label> que no apunta a ningún
+  // control es inerte para un lector de pantalla — se ve la etiqueta pero no se
+  // escucha. Cuando el hijo no es un control único con id (p. ej. un grupo de
+  // botones), la etiqueta se emite como texto y el hijo aporta su propio nombre.
+  const claseEtiqueta = 'block text-[15px] font-semibold text-tinta';
   return (
     <div className="mb-5">
-      <label htmlFor={htmlFor} className="block text-[15px] font-semibold text-tinta">
-        {label}
-      </label>
+      {htmlFor ? (
+        <label htmlFor={htmlFor} className={claseEtiqueta}>
+          {label}
+        </label>
+      ) : (
+        <span className={claseEtiqueta}>{label}</span>
+      )}
       {hint && <p className="mt-1 text-[13px] leading-[1.5] text-[#6b5a48]">{hint}</p>}
       <div className="mt-2">{children}</div>
     </div>
