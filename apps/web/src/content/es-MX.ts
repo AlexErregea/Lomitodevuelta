@@ -106,7 +106,7 @@ export const content = {
     },
     footer: {
       tagline: 'Reunimos perros perdidos con su familia en México. Gratis, siempre.',
-      domain: 'lomitodevuelta.mx',
+      domain: 'lomitodevuelta.com',
       productHeading: 'Producto',
       productLinks: {
         lost: 'Reportar perdido',
@@ -120,7 +120,7 @@ export const content = {
         { label: 'Facebook · @lomitodevuelta', href: 'https://facebook.com/lomitodevuelta' },
         { label: 'TikTok · @lomitodevuelta', href: 'https://tiktok.com/@lomitodevuelta' },
       ],
-      legal: 'LomitoDeVuelta nunca cobra por publicar perros perdidos o encontrados. © 2026 lomitodevuelta.mx',
+      legal: 'LomitoDeVuelta nunca cobra por publicar perros perdidos o encontrados. © 2026 lomitodevuelta.com',
     },
     badges: {
       lost: 'PERDIDO',

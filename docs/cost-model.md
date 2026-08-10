@@ -14,7 +14,7 @@
 | Resend (email fallback) | Free (3,000/mes) | **$0** | Improbable superarlo en MVP |
 | PostHog (analítica + errores) | Free (1M eventos/mes) | **$0** | Improbable en MVP |
 | GitHub (repo + Actions) | Free | **$0** | — |
-| **Dominio** (lomitodevuelta.mx/.com) | — | **~$1-1.5/mes** (~$12-18/año) | El único gasto obligado pre-validación |
+| **Dominio** (lomitodevuelta.com) | — | **~$1-1.5/mes** (~$12-18/año) | El único gasto obligado pre-validación |
 | APIs de visión (Replicate/Anthropic) | pay-per-use | variable → §2 | Cada alta |
 
 **Total fijo del MVP: el dominio.** Todo lo demás es variable y proporcional al uso.

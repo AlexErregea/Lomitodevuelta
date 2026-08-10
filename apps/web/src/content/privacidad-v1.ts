@@ -47,5 +47,8 @@ export const privacyNotice = {
       body: 'Cada versión de este aviso está numerada. Si cambia de fondo, la versión nueva se publicará aquí y los reportes nuevos registrarán la versión que aceptaron; los cambios no aplican retroactivamente a lo ya consentido.',
     },
   ],
-  contactEmail: 'privacidad@lomitodevuelta.mx', // ⚠️ placeholder: correo real del responsable antes del lanzamiento
+  // Dominio definitivo: se registró .com, no .mx. El buzón TIENE que existir de
+  // verdad — este es el canal designado para ejercer derechos ARCO y un correo
+  // que rebota vuelve ficticio el derecho (requiere registros MX en Cloudflare).
+  contactEmail: 'privacidad@lomitodevuelta.com',
 } as const;
