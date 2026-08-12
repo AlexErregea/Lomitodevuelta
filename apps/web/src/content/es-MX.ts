@@ -112,6 +112,7 @@ export const content = {
         lost: 'Reportar perdido',
         found: 'Reportar encontrado',
         como: 'Cómo funciona',
+        privacidad: 'Aviso de privacidad',
       },
       socialHeading: 'Síguenos',
       // URLs reales pendientes: el fundador las rellena (placeholders inofensivos).
@@ -175,6 +176,10 @@ export const content = {
     whatsappPlaceholder: '+52 55 1234 5678',
     consentLabel:
       'Acepto que mi contacto se use únicamente para conectarme si hay coincidencia, y que la foto y la ubicación aproximada se muestren públicamente.',
+    // Responde la objeción real antes de que la persona entregue su WhatsApp:
+    // el miedo no es legal, es "¿quién va a ver mi número?".
+    consentReassurance:
+      'Tu número nunca se muestra en público: quien vea tu ficha solo verá una máscara como •• •• 1234.',
     privacyLink: 'Aviso de privacidad',
     submit: 'Buscar a su familia',
     stages: {

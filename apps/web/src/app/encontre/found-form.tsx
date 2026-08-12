@@ -164,6 +164,9 @@ export function FoundForm() {
             </a>
           </span>
         </label>
+        <p className="mt-3 border-t border-borde pt-3 text-[13px] leading-[1.5] text-[#5b4b3a]">
+          {t.consentReassurance}
+        </p>
       </div>
 
       {error && (

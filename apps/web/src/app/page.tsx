@@ -306,6 +306,11 @@ function Footer() {
               <a href="#como" className="text-[#c2ac8e] hover:text-ambar-claro">
                 {t.footer.productLinks.como}
               </a>
+              {/* El aviso debe ser alcanzable desde cualquier página, no solo
+                  desde los formularios (LFPDPPP). */}
+              <Link href="/privacidad" className="text-[#c2ac8e] hover:text-ambar-claro">
+                {t.footer.productLinks.privacidad}
+              </Link>
             </div>
           </div>
           <div>

@@ -238,6 +238,9 @@ export function LostForm() {
             </a>
           </span>
         </label>
+        <p className="mt-3 border-t border-borde pt-3 text-[13px] leading-[1.5] text-[#5b4b3a]">
+          {tb.consentReassurance}
+        </p>
       </div>
 
       {error && (
