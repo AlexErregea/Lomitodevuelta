@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { FlowShell, secondaryButtonClass } from '@/components/flow-shell';
 import { content } from '@/content/es-MX';
 import { requireEnv } from '@/lib/env';
 import { loadPublicReport, type PublicReport } from '@/lib/ficha';
@@ -47,15 +48,24 @@ export default async function FichaPage({ params }: PageProps) {
   const { id } = await params;
   const report = await loadPublicReport(id);
 
+  // Expirado, retirado o enlace mal copiado: mismo mensaje. Y una salida hacia
+  // los flujos — quien llega aquí buscando un perro sigue teniendo el problema.
   if (!report) {
     return (
-      <main style={{ maxWidth: 480, margin: '0 auto', padding: '1rem' }}>
-        <h1>{t.notFoundTitle}</h1>
-        <p>{t.notFoundBody}</p>
-        <p>
-          <Link href="/">← {content.home.title}</Link>
-        </p>
-      </main>
+      <FlowShell>
+        <div className="rounded-[14px] border border-borde bg-crema-card p-5">
+          <h1 className="font-display text-[22px] font-bold leading-[1.2]">{t.notFoundTitle}</h1>
+          <p className="mt-2 text-[15px] leading-[1.6] text-[#5b4b3a]">{t.notFoundBody}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href="/perdi" className={secondaryButtonClass}>
+              {content.landing.hero.ctaLost}
+            </Link>
+            <Link href="/encontre" className={secondaryButtonClass}>
+              {content.landing.hero.ctaFound}
+            </Link>
+          </div>
+        </div>
+      </FlowShell>
     );
   }
 
@@ -64,68 +74,114 @@ export default async function FichaPage({ params }: PageProps) {
   const shareUrl = `${requireEnv('APP_BASE_URL')}/r/${report.id}`;
   const attributeEntries = buildAttributeEntries(report);
 
+  const [primeraFoto, ...demasFotos] = report.photoUrls;
+
   return (
-    <main style={{ maxWidth: 480, margin: '0 auto', padding: '1rem' }}>
-      <p
-        style={{
-          display: 'inline-block',
-          background: isLost ? '#C0392B' : '#1E8449',
-          color: '#fff',
-          fontWeight: 800,
-          padding: '0.3rem 0.8rem',
-          borderRadius: '0.4rem',
-          margin: 0,
-        }}
+    <FlowShell>
+      {/* Badge y titular arriba de la foto: quien abre esto desde WhatsApp
+          necesita saber en dos segundos si el perro se busca o se encontró. */}
+      <span
+        className={`inline-block rounded-full px-[14px] py-[6px] text-[13px] font-bold uppercase tracking-[.06em] text-white ${
+          isLost ? 'bg-perdido' : 'bg-encontrado'
+        }`}
       >
         {badge}
-      </p>
-      <h1 style={{ marginTop: '0.5rem' }}>{isLost ? t.lostHeading : t.foundHeading}</h1>
+      </span>
+      <h1 className="mt-3 font-display text-[clamp(26px,6vw,34px)] font-bold leading-[1.15] tracking-[-.02em]">
+        {isLost ? t.lostHeading : t.foundHeading}
+      </h1>
 
-      {report.photoUrls.map((url, i) =>
-        report.isSensitive ? (
-          <SensitiveImage key={url} src={url} alt={`Foto ${i + 1}`} />
-        ) : (
-          // img nativo a propósito: URLs firmadas efímeras, next/image no aplica.
-          <img key={url} src={url} alt={`Foto ${i + 1}`} style={{ width: '100%', borderRadius: '0.5rem', marginBottom: '0.5rem' }} />
-        ),
+      {/* Foto principal grande; el resto como tira de miniaturas. Con hasta 5
+          fotos apiladas a ancho completo, la página se volvía un scroll eterno
+          y las acciones quedaban fuera de alcance. */}
+      {primeraFoto && (
+        <div className="mt-5">
+          {report.isSensitive ? (
+            <SensitiveImage src={primeraFoto} alt="Foto 1" />
+          ) : (
+            // img nativo a propósito: URLs firmadas efímeras, next/image no aplica.
+            <img src={primeraFoto} alt="Foto 1" className="w-full rounded-[14px]" />
+          )}
+        </div>
+      )}
+      {demasFotos.length > 0 && (
+        <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+          {demasFotos.map((url, i) =>
+            report.isSensitive ? (
+              <div key={url} className="w-[92px] shrink-0">
+                <SensitiveImage src={url} alt={`Foto ${i + 2}`} />
+              </div>
+            ) : (
+              <img
+                key={url}
+                src={url}
+                alt={`Foto ${i + 2}`}
+                className="h-[92px] w-[92px] shrink-0 rounded-[10px] object-cover"
+              />
+            ),
+          )}
+        </div>
       )}
 
-      <p>
-        📅 {isLost ? t.eventDateLost : t.eventDateFound} <strong>{report.eventDate}</strong>
-        <br />
-        📍 {t.nearLabel}{' '}
-        <strong>
-          {report.addressText ?? `${report.approxLat.toFixed(3)}, ${report.approxLng.toFixed(3)}`}
-        </strong>
+      {/* Dónde y cuándo: los dos datos que deciden si alguien puede ayudar. */}
+      <dl className="mt-5 rounded-[14px] border border-borde bg-crema-card p-4">
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <dt className="text-[14px] text-[#5b4b3a]">{isLost ? t.eventDateLost : t.eventDateFound}</dt>
+          <dd className="text-[15px] font-bold text-tinta">{report.eventDate}</dd>
+        </div>
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-2">
+          <dt className="text-[14px] text-[#5b4b3a]">{t.nearLabel}</dt>
+          <dd className="text-[15px] font-bold text-tinta">
+            {report.addressText ?? `${report.approxLat.toFixed(3)}, ${report.approxLng.toFixed(3)}`}
+          </dd>
+        </div>
         {report.rewardOffered && (
-          <>
-            <br />
+          <p className="mt-3 inline-block rounded-full bg-ambar-claro/40 px-3 py-1 text-[13px] font-bold text-tinta">
             {t.rewardBadge}
-          </>
+          </p>
         )}
-      </p>
+      </dl>
 
+      {/* Atributos como etiquetas y no como lista: se escanean de un vistazo y
+          ocupan la mitad de alto en pantalla de celular. */}
       {attributeEntries.length > 0 && (
-        <ul>
+        <ul className="mt-4 flex flex-wrap gap-2">
           {attributeEntries.map(([label, value]) => (
-            <li key={label}>
-              <strong>{label}:</strong> {value}
+            <li
+              key={label}
+              className="rounded-full border border-borde bg-white px-3 py-[6px] text-[14px] text-tinta"
+            >
+              <span className="text-[#6b5a48]">{label}:</span>{' '}
+              <span className="font-semibold">{value}</span>
             </li>
           ))}
         </ul>
       )}
 
       {report.distinctiveMarks && (
-        <p>
-          <strong>{t.marksLabel}:</strong> {report.distinctiveMarks}
-        </p>
+        <div className="mt-4 rounded-[12px] border border-borde bg-white p-4">
+          <h2 className="text-[14px] font-bold text-tinta">{t.marksLabel}</h2>
+          <p className="mt-1 text-[15px] leading-[1.55] text-tinta">{report.distinctiveMarks}</p>
+        </div>
       )}
 
-      <p style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', alignItems: 'center' }}>
-        <ShareButton badge={badge} shareUrl={shareUrl} />
-        <Link href={isLost ? '/encontre' : '/perdi'}>{isLost ? t.ctaLost : t.ctaFound}</Link>
-      </p>
-    </main>
+      {/* El bloque de acción. Compartir es el motor de distribución del producto
+          (WhatsApp-first), así que va como acción principal y a ancho completo;
+          el CTA cruzado queda debajo para quien reconoce al perro. */}
+      <section className="mt-7 rounded-[14px] border border-borde bg-white p-4">
+        <h2 className="font-display text-lg font-bold">{t.helpHeading}</h2>
+        <p className="mt-1 text-[14px] leading-[1.55] text-[#5b4b3a]">{t.helpBody}</p>
+        <div className="mt-4">
+          <ShareButton badge={badge} shareUrl={shareUrl} />
+        </div>
+        <Link
+          href={isLost ? '/encontre' : '/perdi'}
+          className={`${secondaryButtonClass} mt-2 block text-center`}
+        >
+          {isLost ? t.ctaLost : t.ctaFound}
+        </Link>
+      </section>
+    </FlowShell>
   );
 }
 

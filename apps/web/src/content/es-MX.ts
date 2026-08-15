@@ -299,7 +299,11 @@ export const content = {
     eventDateFound: 'Encontrado el',
     nearLabel: 'Cerca de',
     marksLabel: 'Señas particulares',
-    rewardBadge: '🎁 Ofrece recompensa',
+    rewardBadge: 'Ofrece recompensa',
+    // La ficha llega por WhatsApp a alguien que no conoce el producto: hay que
+    // decirle qué hacer con lo que está viendo, no solo mostrárselo.
+    helpHeading: '¿Puedes ayudar?',
+    helpBody: 'Compartirlo multiplica las probabilidades. Cada persona que lo vea es una posibilidad más de que vuelva a casa.',
     sensitiveWarning: 'Imagen sensible: el perro podría verse herido.',
     tapToReveal: 'Toca para ver',
     shareButton: 'Compartir por WhatsApp',
