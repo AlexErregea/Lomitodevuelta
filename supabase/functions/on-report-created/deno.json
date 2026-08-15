@@ -1,0 +1,8 @@
+{
+  "// nota": "Import map PROPIO de esta función. El de functions/deno.json vive un nivel arriba y el empaquetador del CLI no lo encuentra desde aquí, así que las rutas se repiten con un ../ más. Deno sí detecta un deno.json en el directorio de la función. Mantener ambos archivos sincronizados: este manda al desplegar, el de arriba sirve al editor y a `supabase functions serve`.",
+  "imports": {
+    "@lomito/matching": "../../../packages/matching/src/index.ts",
+    "@lomito/shared": "../../../packages/shared/src/index.ts",
+    "zod": "npm:zod@^3.24.0"
+  }
+}

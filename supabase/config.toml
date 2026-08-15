@@ -25,7 +25,7 @@ verify_jwt = false
 # / or ./ or ../". Las otras tres no lo necesitan: solo importan ../_shared/.
 [functions.on-report-created]
 verify_jwt = false
-import_map = "./functions/deno.json"
+import_map = "./functions/on-report-created/deno.json"
 
 # lifecycle la invocará pg_cron con EDGE_WEBHOOK_SECRET (Sprint 3).
 [functions.lifecycle]
