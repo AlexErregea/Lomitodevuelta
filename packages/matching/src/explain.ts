@@ -1,4 +1,4 @@
-import type { Evidence, MatchScore } from './types';
+import type { Evidence, MatchScore } from './types.ts';
 
 // ============================================================================
 // Explicación legible (docs/matching-engine.md §5). Sin LLM: plantillas

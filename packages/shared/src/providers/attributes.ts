@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { dogAttributesSchema } from '../types/dog';
+import { dogAttributesSchema } from '../types/dog.ts';
 
 // ============================================================================
 // Interfaz del extractor de atributos con LLM multimodal (ADR-0003).

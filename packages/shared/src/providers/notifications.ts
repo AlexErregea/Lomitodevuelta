@@ -1,4 +1,4 @@
-import type { ContactChannel } from '../api/schemas';
+import type { ContactChannel } from '../api/schemas.ts';
 
 // ============================================================================
 // Interfaz del proveedor de notificaciones (ADR-0008).

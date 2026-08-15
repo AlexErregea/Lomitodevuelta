@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { dogAttributesSchema, geoPointSchema, reportTypeSchema } from '../types/dog';
-import type { DogAttributes, GeoPoint, ReportType } from '../types/dog';
+import { dogAttributesSchema, geoPointSchema, reportTypeSchema } from '../types/dog.ts';
+import type { DogAttributes, GeoPoint, ReportType } from '../types/dog.ts';
 
 // ============================================================================
 // Contratos de la API (docs/api-contracts.md). Los esquemas Zod validan los

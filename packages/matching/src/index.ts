@@ -9,6 +9,6 @@
 //   3. Los pesos NUNCA se cablean aquí: llegan por parámetro (MatchingParams,
 //      espejo de la fila activa de la tabla matching_params).
 
-export * from './types';
-export * from './score';
-export * from './explain';
+export * from './types.ts';
+export * from './score.ts';
+export * from './explain.ts';

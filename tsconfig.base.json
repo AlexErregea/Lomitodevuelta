@@ -4,6 +4,11 @@
     "lib": ["ES2022"],
     "module": "ESNext",
     "moduleResolution": "bundler",
+    // Los imports relativos de packages/* llevan extensión .ts explícita: Deno
+    // la exige y las Edge Functions consumen esos archivos como fuente (ADR-0001).
+    // TypeScript solo lo permite con esta bandera, que a su vez exige noEmit —
+    // se cumple en los tres proyectos: nada de este monorepo emite JS.
+    "allowImportingTsExtensions": true,
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noFallthroughCasesInSwitch": true,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { renderExplanation, scoreBand } from './explain';
-import { rankCandidates, scoreCandidate } from './score';
-import type { CandidateRaw, MatchingParams, MatchScore, ReferenceReport } from './types';
+import { renderExplanation, scoreBand } from './explain.ts';
+import { rankCandidates, scoreCandidate } from './score.ts';
+import type { CandidateRaw, MatchingParams, MatchScore, ReferenceReport } from './types.ts';
 
 // ============================================================================
 // Casos dorados del score (docs/matching-engine.md §10). Los fixtures usan

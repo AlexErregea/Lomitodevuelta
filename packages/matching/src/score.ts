@@ -7,7 +7,7 @@ import type {
   MatchScore,
   ReferenceReport,
   ScoredCandidate,
-} from './types';
+} from './types.ts';
 
 // ============================================================================
 // Score multimodal (capa 2). Implementa docs/matching-engine.md §4 — si
