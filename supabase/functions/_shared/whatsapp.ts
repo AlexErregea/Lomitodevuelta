@@ -6,7 +6,12 @@ import { requireEnv } from './env.ts';
 // ledger `notifications` ANTES de llamar aquí.
 // ============================================================================
 
-const GRAPH_API_VERSION = 'v20.0';
+// Versión de Graph API. Meta retira cada versión ~2 años después de publicarla:
+// v20.0 (mayo 2024) deja de existir el 24 de septiembre de 2026 y los envíos
+// fallarían de golpe ese día. v24.0 se publicó en octubre de 2025, así que tiene
+// margen hasta ~finales de 2027. Calendario oficial:
+// developers.facebook.com/docs/graph-api/changelog
+const GRAPH_API_VERSION = 'v24.0';
 
 const TEMPLATE_VARIABLE_ORDER: Record<string, string[]> = {
   manage_link: ['manage_url'],

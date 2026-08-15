@@ -23,11 +23,16 @@ import { content } from '@/content/es-MX';
 
 const t = content.photoPicker;
 
+// NO se usa el atributo `capture`. Fuerza la cámara y deja fuera la galería, y
+// eso pierde reportes: quien encontró al perro hace dos horas, lo metió a su
+// casa y ahora reporta desde el sillón ya tiene la foto tomada; quien la recibió
+// de un vecino también. El flujo B no puede permitirse perder ni un registro
+// (architecture.md), y el selector nativo ya ofrece "Tomar foto" como primera
+// opción — no se pierde nada y se gana la galería.
 export function PhotoPicker({
   id,
   name,
   multiple = false,
-  capture = false,
   required = true,
   onChange,
 }: {
@@ -35,7 +40,6 @@ export function PhotoPicker({
   id?: string;
   name: string;
   multiple?: boolean;
-  capture?: boolean;
   required?: boolean;
   onChange?: (files: FileList | null) => void;
 }) {
@@ -62,9 +66,6 @@ export function PhotoPicker({
           accept="image/*"
           multiple={multiple}
           required={required}
-          // `capture` abre la cámara trasera directamente en móvil (flujo B:
-          // el perro está enfrente, la foto se toma en el momento).
-          {...(capture ? { capture: 'environment' as const } : {})}
           onChange={(event) => {
             setCount(event.target.files?.length ?? 0);
             onChange?.(event.target.files);

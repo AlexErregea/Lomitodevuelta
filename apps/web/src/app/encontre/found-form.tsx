@@ -108,7 +108,7 @@ export function FoundForm() {
       <FlowHeading title={t.heading} promise={t.promise} />
 
       <Field label={t.photoLabel} htmlFor="photo">
-        <PhotoPicker id="photo" name="photo" capture />
+        <PhotoPicker id="photo" name="photo" />
       </Field>
 
       <LocationField label={t.locationLabel} value={location} onChange={setLocation} />
