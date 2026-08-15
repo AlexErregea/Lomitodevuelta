@@ -16,8 +16,16 @@ verify_jwt = false
 verify_jwt = false
 
 # on-report-created la invocará el DB webhook con EDGE_WEBHOOK_SECRET (Sprint 3).
+#
+# Es la única función que importa un paquete del monorepo (@lomito/matching,
+# para reusar EL MISMO motor de score que la web — matching-engine.md §2). Ese
+# alias vive en functions/deno.json, pero el empaquetador del CLI no busca un
+# import map en el directorio padre de la función: hay que señalárselo. Sin
+# esta línea el despliegue falla con "Relative import path not prefixed with
+# / or ./ or ../". Las otras tres no lo necesitan: solo importan ../_shared/.
 [functions.on-report-created]
 verify_jwt = false
+import_map = "./functions/deno.json"
 
 # lifecycle la invocará pg_cron con EDGE_WEBHOOK_SECRET (Sprint 3).
 [functions.lifecycle]
