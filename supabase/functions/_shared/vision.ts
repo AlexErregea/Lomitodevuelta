@@ -15,7 +15,11 @@ import { optionalEnv, requireEnv } from './env.ts';
 // ============================================================================
 
 const DEFAULT_EXTRACTION_MODEL = 'claude-haiku-4-5';
-const DEFAULT_REPLICATE_MODEL = 'andreasjansson/clip-features';
+// Por VERSIÓN, no por nombre: /v1/models/{owner}/{name}/predictions solo sirve
+// para modelos oficiales de Replicate y devuelve 404 con los de la comunidad.
+// Espejo de apps/web/src/lib/providers/replicate-embedding.ts — mantener igual.
+const DEFAULT_REPLICATE_VERSION =
+  '75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a';
 const EXPECTED_DIMENSIONS = 768;
 /** En reintentos nadie espera: se tolera más latencia que en el camino vivo. */
 const REQUEST_TIMEOUT_MS = 45_000;
@@ -83,20 +87,20 @@ export function validateExtraction(raw: unknown): ExtractionResult {
 }
 
 export async function embedImage(imageUrl: string): Promise<number[]> {
-  const replicateModel = optionalEnv('REPLICATE_EMBEDDING_MODEL') ?? DEFAULT_REPLICATE_MODEL;
-  const response = await fetch(
-    `https://api.replicate.com/v1/models/${replicateModel}/predictions`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${requireEnv('REPLICATE_API_TOKEN')}`,
-        'Content-Type': 'application/json',
-        Prefer: 'wait',
-      },
-      body: JSON.stringify({ input: { inputs: imageUrl } }),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  const replicateVersion = optionalEnv('REPLICATE_EMBEDDING_VERSION') ?? DEFAULT_REPLICATE_VERSION;
+  const response = await fetch('https://api.replicate.com/v1/predictions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${requireEnv('REPLICATE_API_TOKEN')}`,
+      'Content-Type': 'application/json',
+      Prefer: 'wait',
     },
-  );
+    body: JSON.stringify({
+      version: replicateVersion,
+      input: { inputs: imageUrl },
+    }),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
   if (!response.ok) {
     throw new Error(`Replicate respondió ${response.status}: ${await response.text()}`);
   }

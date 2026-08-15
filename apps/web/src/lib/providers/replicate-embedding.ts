@@ -9,8 +9,20 @@ import { optionalEnv, requireEnv } from '../env';
 // re-embed, runbook en matching-engine.md §7).
 // ============================================================================
 
-/** Placeholder pre-benchmark: CLIP ViT-L/14 (768 dims) servido en Replicate. */
-const DEFAULT_REPLICATE_MODEL = 'andreasjansson/clip-features';
+// Placeholder pre-benchmark: CLIP ViT-L/14 (768 dims) servido en Replicate.
+//
+// Se invoca por VERSIÓN y no por nombre de modelo. El endpoint
+// /v1/models/{owner}/{name}/predictions solo existe para los modelos oficiales
+// de Replicate; andreasjansson/clip-features es de la comunidad, y llamarlo así
+// devuelve 404. Los modelos de la comunidad van por /v1/predictions con el hash
+// de la versión.
+//
+// Fijar el hash además cumple el ADR-0003: un vector solo se compara con otros
+// de la MISMA versión de modelo. Si el hash cambia sin que cambie
+// matching_params.embedding_model_version, quedarían vectores incomparables
+// bajo la misma etiqueta.
+const DEFAULT_REPLICATE_VERSION =
+  '75b33f253f7714a281ad3e9b28f63e3232d583716ef6718f2e46641077ea040a';
 const EXPECTED_DIMENSIONS = 768;
 /** Timeout propio < 20 s del pipeline (los cold starts se van a 'pending'). */
 const REQUEST_TIMEOUT_MS = 18_000;
@@ -24,30 +36,30 @@ interface ReplicatePrediction {
 export class ReplicateEmbeddingProvider implements EmbeddingProvider {
   readonly modelVersion: string;
   readonly dimensions = EXPECTED_DIMENSIONS;
-  private replicateModel: string;
+  private replicateVersion: string;
 
   /** @param modelVersion versión activa de matching_params (se persiste con cada vector) */
   constructor(modelVersion: string) {
     this.modelVersion = modelVersion;
-    this.replicateModel = optionalEnv('REPLICATE_EMBEDDING_MODEL') ?? DEFAULT_REPLICATE_MODEL;
+    this.replicateVersion = optionalEnv('REPLICATE_EMBEDDING_VERSION') ?? DEFAULT_REPLICATE_VERSION;
   }
 
   async embed(imageUrl: string): Promise<Float32Array> {
     // 'Prefer: wait' bloquea hasta ~60 s en el servidor de Replicate; nuestro
     // AbortSignal corta antes — el llamador maneja el fallo (ruta pending).
-    const response = await fetch(
-      `https://api.replicate.com/v1/models/${this.replicateModel}/predictions`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${requireEnv('REPLICATE_API_TOKEN')}`,
-          'Content-Type': 'application/json',
-          Prefer: 'wait',
-        },
-        body: JSON.stringify({ input: { inputs: imageUrl } }),
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    const response = await fetch('https://api.replicate.com/v1/predictions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${requireEnv('REPLICATE_API_TOKEN')}`,
+        'Content-Type': 'application/json',
+        Prefer: 'wait',
       },
-    );
+      body: JSON.stringify({
+        version: this.replicateVersion,
+        input: { inputs: imageUrl },
+      }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
     if (!response.ok) {
       throw new Error(`Replicate respondió ${response.status}: ${await response.text()}`);
     }
