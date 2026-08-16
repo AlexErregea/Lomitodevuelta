@@ -20,17 +20,80 @@ export interface ServerNotifyInput {
   fallbackEmail?: { contactId: string; to: string } | null;
 }
 
-async function isWhatsAppPaused(): Promise<boolean> {
-  const { data } = await supabaseAdmin()
+/** Tope por defecto si system_config no responde: nunca "sin límite". */
+const FALLBACK_MAX_MESSAGES_PER_CONTACT_DAY = 3;
+
+/**
+ * ¿Este destino ya recibió sus mensajes del día? (S3-A.3)
+ *
+ * Cuenta por `value_hash`, no por reporte: si alguien crea diez reportes con
+ * el número de una víctima para bombardearla, los diez comparten cupo. Es la
+ * defensa que protege a la vez a la persona y al número de WhatsApp del
+ * proyecto (una racha de bloqueos hunde el quality rating de Meta).
+ */
+export async function contactCapReached(contactId: string): Promise<boolean> {
+  const db = supabaseAdmin();
+  const [{ data: config }, { data: sentToday }] = await Promise.all([
+    db.from('system_config').select('max_messages_per_contact_per_day').eq('id', true).maybeSingle(),
+    db.rpc('notifications_last_day_for_contact', { p_contact_id: contactId }),
+  ]);
+  const max =
+    (config?.max_messages_per_contact_per_day as number | undefined) ??
+    FALLBACK_MAX_MESSAGES_PER_CONTACT_DAY;
+  const used = typeof sentToday === 'number' ? sentToday : 0;
+  if (used >= max) {
+    console.warn(JSON.stringify({ msg: 'contact_cap_reached', contactId, used, max }));
+    return true;
+  }
+  return false;
+}
+
+/**
+ * ¿WhatsApp indisponible? Pausa manual del kill-switch O presupuesto agotado.
+ *
+ * El presupuesto se evalúa AQUÍ, antes de cada envío (S3-A.4). Antes solo lo
+ * revisaba `lifecycle` una vez al día, lo que dejaba una ventana de hasta 24 h
+ * para gastar por encima del tope — justo el escenario que el kill-switch
+ * existe para evitar. Al agotarse se persiste `whatsapp_paused` para que todo
+ * el sistema (incluidas las Edge Functions) lo vea en el acto.
+ */
+async function whatsappUnavailable(): Promise<boolean> {
+  const db = supabaseAdmin();
+  const { data: config } = await db
     .from('system_config')
-    .select('whatsapp_paused')
+    .select('whatsapp_paused, monthly_message_budget')
     .eq('id', true)
     .maybeSingle();
-  return Boolean(data?.whatsapp_paused);
+  if (!config) return false;
+  if (config.whatsapp_paused) return true;
+
+  const monthStart = new Date();
+  monthStart.setUTCDate(1);
+  monthStart.setUTCHours(0, 0, 0, 0);
+  const { count } = await db
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('channel', 'whatsapp')
+    .in('status', ['sent', 'delivered'])
+    .gte('created_at', monthStart.toISOString());
+
+  const used = count ?? 0;
+  const budget = config.monthly_message_budget as number;
+  if (used < budget) return false;
+
+  console.warn(JSON.stringify({ msg: 'budget_exhausted_pausing_whatsapp', used, budget }));
+  await db.from('system_config').update({ whatsapp_paused: true }).eq('id', true);
+  return true;
 }
 
 export async function sendNotification(input: ServerNotifyInput): Promise<boolean> {
   const db = supabaseAdmin();
+
+  // Tope anti-bombardeo antes del ledger: un mensaje que no se va a enviar
+  // tampoco debe ocupar su clave de idempotencia (si no, el destinatario
+  // quedaría sin ese aviso para siempre, no solo hoy).
+  if (await contactCapReached(input.contactId)) return false;
+
   const { data: row } = await db
     .from('notifications')
     .insert({
@@ -49,7 +112,7 @@ export async function sendNotification(input: ServerNotifyInput): Promise<boolea
   let to = input.to;
   let notificationId = row.id as string;
 
-  if (channel === 'whatsapp' && (await isWhatsAppPaused())) {
+  if (channel === 'whatsapp' && (await whatsappUnavailable())) {
     if (!input.fallbackEmail) return false; // queda 'queued'; retry-pending revisará
     const { data: emailRow } = await db
       .from('notifications')

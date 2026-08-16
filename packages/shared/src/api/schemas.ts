@@ -19,6 +19,10 @@ export const errorCodeSchema = z.enum([
   'conflict',
   'rate_limited',
   'inference_unavailable',
+  // Circuit breaker global: la plataforma se apagó a sí misma por tope de
+  // altas del día. Distinto de inference_unavailable (ahí el reporte SÍ se
+  // creó); aquí no se creó nada y el usuario debe reintentar más tarde.
+  'service_unavailable',
   'internal_error',
 ]);
 export type ErrorCode = z.infer<typeof errorCodeSchema>;
@@ -66,8 +70,18 @@ export const createReportRequestSchema = z.object({
     /** E.164 para whatsapp (+52...), email para email */
     value: z.string().min(5),
   }),
-  /** Literal true: sin consentimiento expreso no hay reporte (LFPDPPP) */
-  consentAccepted: z.literal(true),
+  /**
+   * Consentimiento TÁCITO (decisión del fundador, 2026-08-12): publicar el
+   * reporte es el acto de consentimiento, y el formulario referencia el aviso
+   * justo antes del botón. No viaja ninguna casilla: la LFPDPPP admite el
+   * tácito para datos no sensibles y el checkbox solo restaba conversión en el
+   * paso donde más gente abandona. El servidor sigue registrando la evidencia
+   * (contacts.consent_given_at + consent_version), que es lo que la ley pide
+   * poder demostrar.
+   *
+   * Token de Turnstile: solo lo exige el servidor si hay llaves configuradas.
+   */
+  turnstileToken: z.string().max(2048).optional(),
   // Flujo A (opcionales; la IA los completa y el usuario corrige):
   attributes: dogAttributesSchema.optional(),
   distinctiveMarks: z.string().max(500).optional(),

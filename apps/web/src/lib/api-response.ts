@@ -15,8 +15,17 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   rate_limited: 429,
   internal_error: 500,
   inference_unavailable: 503,
+  service_unavailable: 503,
 };
 
-export function apiError(code: ErrorCode, message: string): NextResponse<ApiError> {
-  return NextResponse.json({ error: { code, message } }, { status: STATUS_BY_CODE[code] });
+export function apiError(
+  code: ErrorCode,
+  message: string,
+  /** Cabeceras extra del contrato: `Retry-After` en los 429 (§6). */
+  headers?: Record<string, string>,
+): NextResponse<ApiError> {
+  return NextResponse.json(
+    { error: { code, message } },
+    { status: STATUS_BY_CODE[code], ...(headers ? { headers } : {}) },
+  );
 }

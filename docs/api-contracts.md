@@ -72,7 +72,11 @@ interface CreateReportRequest {
   geo: { lat: number; lng: number }; // punto exacto; el servidor difumina lo público
   eventDate: string;                 // ISO date
   contact: { channel: 'whatsapp' | 'email'; value: string };  // E.164 o email
-  consentAccepted: true;             // literal: sin consentimiento no hay reporte
+  turnstileToken?: string;           // solo se exige si el entorno tiene llaves de Turnstile
+  // Sin campo de consentimiento: es TÁCITO (decisión 2026-08-12). Publicar el
+  // reporte es el acto de consentimiento y el formulario referencia el aviso
+  // justo antes del botón; el servidor registra la evidencia en `contacts`
+  // (consent_given_at + consent_version). Ver security-privacy.md §4.
   // Flujo A (opcionales; la IA los completa y el usuario corrige después):
   attributes?: DogAttributes;        // packages/shared (ver matching-engine.md §8)
   distinctiveMarks?: string;
@@ -128,17 +132,32 @@ interface RejectMatchRequest { side: 'lost' | 'found'; reason?: string; }
 | `conflict` | 409 | Transición de estado inválida (p. ej. aceptar un match rechazado) |
 | `rate_limited` | 429 | Ver §6; incluye `Retry-After` |
 | `inference_unavailable` | 503 | Pipeline de visión caído — el reporte SE CREÓ (queda `pending`); el cliente lo comunica así |
+| `service_unavailable` | 503 | Circuit breaker global: se alcanzó `system_config.max_reports_per_day` y NO se creó nada. Incluye `Retry-After` |
 | `internal_error` | 500 | Todo lo demás; sin detalles internos en `message` |
 
 ## 6. Rate limits (anti-abuso y anti-scraping, security-privacy.md §6)
 
-| Límite | Alcance | Valor MVP |
-|---|---|---|
-| Creación de reportes | por `value_hash` de contacto | 5/día |
-| Creación de reportes | por IP | 10/día |
-| Firmas de subida | por IP | 30/hora |
-| Lectura de candidatos | por manage-token | 60/hora |
-| Fichas públicas | por IP | 300/hora (el share masivo de WhatsApp es legítimo) |
+| Límite | Alcance | Valor MVP | Estado |
+|---|---|---|---|
+| Creación de reportes | por IP | **3/hora** | ✅ S3-A |
+| Creación de reportes | por IP | 10/día | ✅ S3-A |
+| Creación de reportes | por `value_hash` de contacto | 5/día | ✅ S3-A |
+| Creación de reportes | **global (circuit breaker)** | `system_config.max_reports_per_day` (default 200/día) → 503 | ✅ S3-A |
+| Firmas de subida | por IP | **15/hora** | ✅ S3-A |
+| Mensajes salientes | por `value_hash` destino | `system_config.max_messages_per_contact_per_day` (default 3/día) | ✅ S3-A |
+| Lectura de candidatos | por manage-token | 60/hora | pendiente (S4) |
+| Fichas públicas | por IP | 300/hora (el share masivo de WhatsApp es legítimo) | pendiente (S4) |
 
-Implementación MVP: contadores en Postgres (los volúmenes lo permiten de sobra);
+La ráfaga por hora (3) se agregó en el S3-A junto al acumulado diario: sin ella,
+las 10 altas del día podían salir en diez segundos, que es exactamente la forma
+de un script. Las firmas de subida bajaron de 30 a 15/hora — sigue siendo el
+triple de lo que consume un Flujo A completo (5 fotos).
+
+Implementación: contadores en Postgres (`rate_limit_counters` +
+`consume_rate_limits()`, migración 12), una sola llamada atómica por request.
 Upstash/Redis solo si algún límite se vuelve cuello de botella (fase posterior).
+Las cubetas guardan hashes, nunca la IP en claro (la IP es dato personal).
+
+**Turnstile** (Cloudflare, invisible) protege `POST /api/reports` cuando el
+entorno tiene llaves; sin ellas, el servidor no exige token y el sitio se
+comporta igual que antes.

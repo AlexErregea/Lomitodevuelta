@@ -2,12 +2,17 @@ import { randomUUID } from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
 import { signUploadRequestSchema, type SignUploadResponse } from '@lomito/shared';
 import { apiError } from '@/lib/api-response';
+import { LIMITS, clientIp, consumeRateLimits, humanizeWait, ipBucket } from '@/lib/rate-limit';
 import { PHOTOS_BUCKET, supabaseAdmin } from '@/lib/supabase-admin';
 
 // ============================================================================
 // POST /api/uploads/sign — URL firmada de subida directa a Storage.
 // El SERVIDOR dicta la ruta (el cliente jamás elige dónde escribe) y el
 // bucket es privado: subir aquí no publica nada (security-privacy.md §7).
+//
+// Es la puerta más barata de tocar del sistema (no cuesta inferencia, pero sí
+// escribe en Storage), así que lleva su propio rate limit por IP: sin él,
+// alguien puede llenar el bucket sin crear un solo reporte.
 // ============================================================================
 
 /** TTL corto: la subida ocurre inmediatamente después de pedir la firma. */
@@ -28,6 +33,17 @@ export async function POST(request: NextRequest) {
   const parsed = signUploadRequestSchema.safeParse(body);
   if (!parsed.success) {
     return apiError('validation_error', parsed.error.issues.map((i) => i.message).join('; '));
+  }
+
+  const limit = await consumeRateLimits([
+    { key: ipBucket('upload', clientIp(request)), ...LIMITS.uploadSignsPerIpHour },
+  ]);
+  if (!limit.allowed) {
+    return apiError(
+      'rate_limited',
+      `Estás subiendo muchas fotos seguidas. Vuelve a intentarlo ${humanizeWait(limit.retryAfterSeconds)}.`,
+      { 'Retry-After': String(limit.retryAfterSeconds) },
+    );
   }
 
   const now = new Date();

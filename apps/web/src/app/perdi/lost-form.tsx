@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import type { CreateReportRequest, CreateReportResponse } from '@lomito/shared';
+import { ConsentNotice } from '@/components/consent-notice';
 import { EditFichaForm } from '@/components/edit-ficha-form';
 import {
   Field,
@@ -12,6 +13,7 @@ import {
 } from '@/components/flow-shell';
 import { LocationField, type LocationValue } from '@/components/location-field';
 import { PhotoPicker } from '@/components/photo-picker';
+import { TurnstileField } from '@/components/turnstile-field';
 import { content } from '@/content/es-MX';
 import { captureEvent } from '@/lib/client/analytics';
 import { uploadPhoto } from '@/lib/client/upload';
@@ -50,12 +52,13 @@ export function LostForm() {
     const whatsapp = String(formData.get('whatsapp') ?? '').trim();
     const eventDate = String(formData.get('eventDate') ?? '');
     const marks = String(formData.get('distinctiveMarks') ?? '').trim();
-    const consent = formData.get('consent') === 'on';
+    // Vacío si Turnstile no está configurado en este entorno: el servidor solo
+    // lo exige cuando hay llaves.
+    const turnstileToken = String(formData.get('turnstileToken') ?? '');
 
     if (photos.length === 0) return setError(tb.errors.missingPhoto);
     if (photos.length > MAX_PHOTOS) return setError(t.tooManyPhotos);
     if (!location) return setError(tb.errors.missingLocation);
-    if (!consent) return setError(tb.errors.missingConsent);
 
     try {
       setStage('uploading');
@@ -72,7 +75,7 @@ export function LostForm() {
         geo: { lat: location.lat, lng: location.lng },
         eventDate,
         contact: { channel: 'whatsapp', value: whatsapp },
-        consentAccepted: true,
+        ...(turnstileToken ? { turnstileToken } : {}),
         ...(location.addressText ? { addressText: location.addressText } : {}),
         ...(marks ? { distinctiveMarks: marks } : {}),
       };
@@ -223,25 +226,8 @@ export function LostForm() {
         />
       </Field>
 
-      <div className="mb-6 rounded-[12px] border border-borde bg-crema-card p-4">
-        <label htmlFor="consent" className="grid grid-cols-[auto_1fr] items-start gap-3">
-          <input id="consent" type="checkbox" name="consent" required className="mt-[3px] h-[18px] w-[18px] accent-ambar" />
-          <span className="text-[14px] leading-[1.55] text-[#5b4b3a]">
-            {tb.consentLabel}{' '}
-            <a
-              href="/privacidad"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-ambar-texto underline"
-            >
-              {tb.privacyLink}
-            </a>
-          </span>
-        </label>
-        <p className="mt-3 border-t border-borde pt-3 text-[13px] leading-[1.5] text-[#5b4b3a]">
-          {tb.consentReassurance}
-        </p>
-      </div>
+      <TurnstileField />
+      <ConsentNotice />
 
       {error && (
         <p role="alert" className="mb-4 rounded-[10px] border border-perdido/30 bg-perdido/5 p-3 text-[14px] font-semibold text-perdido-texto">

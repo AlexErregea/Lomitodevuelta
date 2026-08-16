@@ -9,9 +9,11 @@
 //   4. Kill-switch de presupuesto (ADR-0008): cuenta los mensajes de pago del
 //      mes; al 80% avisa (log del fundador), al 100% pausa WhatsApp. Se
 //      auto-reactiva cuando el mes cambia y el consumo baja del presupuesto.
+//   5. Higiene (S3-A.6): borra subidas huérfanas de Storage y las ventanas
+//      viejas de los contadores de rate limit.
 // ============================================================================
 
-import { adminClient } from '../_shared/db.ts';
+import { adminClient, PHOTOS_BUCKET } from '../_shared/db.ts';
 import { requireEnv } from '../_shared/env.ts';
 import { buildManageUrl, generateManageToken, hashManageToken } from '../_shared/manage-token.ts';
 import { notify } from '../_shared/notify.ts';
@@ -25,7 +27,14 @@ Deno.serve(async (req) => {
     return json({ error: { code: 'unauthorized', message: 'Secreto inválido.' } }, 401);
   }
   const db = adminClient();
-  const summary = { reminded: 0, expired: 0, purged: 0, whatsappPaused: false };
+  const summary = {
+    reminded: 0,
+    expired: 0,
+    purged: 0,
+    whatsappPaused: false,
+    orphanPhotosDeleted: 0,
+    rateLimitWindowsDeleted: 0,
+  };
 
   // -------------------------------------------------------------------------
   // 1) Avisos de renovación (~10 días antes de vencer)
@@ -129,6 +138,39 @@ Deno.serve(async (req) => {
       await db.from('system_config').update(patch).eq('id', true);
     }
   }
+
+  // -------------------------------------------------------------------------
+  // 5) Higiene de Storage y de contadores (S3-A.6)
+  // -------------------------------------------------------------------------
+  // Subidas huérfanas: se firmó la subida, la foto llegó, pero el reporte
+  // nunca se creó (formulario abandonado, o alguien pidiendo firmas en masa).
+  // El margen de 24 h del RPC hace imposible tocar una subida en curso. Hay
+  // que borrar por la API de Storage: borrar la fila de storage.objects no
+  // borra el archivo físico, que es justo lo que ocupa el GB del plan Free.
+  try {
+    const { data: orphans } = await db.rpc('list_orphan_uploads', { p_older_than_hours: 24 });
+    const paths = ((orphans ?? []) as { name?: string }[] | string[])
+      .map((row) => (typeof row === 'string' ? row : row.name))
+      .filter((path): path is string => Boolean(path));
+    if (paths.length > 0) {
+      const { error } = await db.storage.from(PHOTOS_BUCKET).remove(paths);
+      if (error) throw error;
+      summary.orphanPhotosDeleted = paths.length;
+    }
+  } catch (err) {
+    // La higiene nunca tumba el resto del ciclo de vida.
+    console.error(JSON.stringify({ msg: 'orphan_purge_failed', error: String(err) }));
+  }
+
+  // Ventanas de rate limit ya cerradas. No afecta a la corrección del límite
+  // (la ventana se calcula por truncamiento del reloj); es espacio, nada más.
+  const staleWindow = new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString();
+  const { data: deletedWindows } = await db
+    .from('rate_limit_counters')
+    .delete()
+    .lt('window_start', staleWindow)
+    .select('bucket_key');
+  summary.rateLimitWindowsDeleted = (deletedWindows ?? []).length;
 
   return json(summary, 200);
 });
