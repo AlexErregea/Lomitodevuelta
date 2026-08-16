@@ -177,10 +177,25 @@ Deno.serve(async (req) => {
       // nunca queda válido (falla cerrado). Mismo guardarraíl que `lifecycle`
       // usa para no invalidar un enlace por un aviso que nadie recibió.
       if (sent) {
-        await db
+        const { error: tokenError } = await db
           .from('matches')
           .update({ [`${side}_access_token_hash`]: await hashManageToken(accessToken) })
           .eq('id', match.id);
+        // Si el hash no se guarda, el aviso ya salió con un enlace que no va a
+        // autenticar. No se puede deshacer el WhatsApp, pero tiene que quedar
+        // en el log: el síntoma para la persona es "enlace vencido" y sin esto
+        // sería indistinguible de un token viejo. Pasa, por ejemplo, si la
+        // función se despliega antes que su migración.
+        if (tokenError) {
+          console.error(
+            JSON.stringify({
+              msg: 'match_access_token_not_stored',
+              match: match.id,
+              side,
+              error: tokenError.message,
+            }),
+          );
+        }
         notifiedAny = true;
       }
     }
