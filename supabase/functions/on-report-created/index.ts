@@ -16,6 +16,7 @@
 import { rankCandidates, type CandidateRaw, type MatchingParams, type ReferenceReport } from '@lomito/matching';
 import { adminClient } from '../_shared/db.ts';
 import { requireEnv } from '../_shared/env.ts';
+import { buildMatchUrl, generateManageToken, hashManageToken } from '../_shared/manage-token.ts';
 import { matchNotificationsTodayForDog, notify } from '../_shared/notify.ts';
 
 const MAX_MATCH_NOTIFICATIONS_PER_DAY = 3;
@@ -138,17 +139,26 @@ Deno.serve(async (req) => {
       payload: { total_score: score.total, params_id: score.paramsId },
     });
 
-    // Notifica a AMBAS partes (con tope anti-spam por reporte/día). Cada parte
-    // recibe la ficha pública de la contraparte y usa su enlace de gestión.
+    // Notifica a AMBAS partes (con tope anti-spam por reporte/día). Cada una
+    // recibe el enlace a SU PROPIO panel, acotado a esta coincidencia.
+    //
+    // Antes se mandaba la ficha pública de la contraparte, que es anónima y no
+    // puede saber quién la abre: el mensaje decía "dinos si es él" y llevaba a
+    // una página sin un solo botón. El cuerpo aprobado en Meta ya apuntaba al
+    // panel; era el código el que mandaba otra cosa.
     let notifiedAny = false;
-    for (const [selfDogId, otherDogId] of [
-      [reference.dogId, candidate.dogId],
-      [candidate.dogId, reference.dogId],
+    for (const [selfDogId, side] of [
+      [dogLostId, 'lost'],
+      [dogFoundId, 'found'],
     ] as const) {
       if ((await matchNotificationsTodayForDog(db, selfDogId)) >= MAX_MATCH_NOTIFICATIONS_PER_DAY) continue;
       const contact = await primaryContact(db, selfDogId);
       if (!contact) continue;
       const email = await emailContact(db, selfDogId);
+
+      // Token por lado: el enlace de quien encontró al perro no debe poder
+      // aportar la prueba de propiedad en nombre del dueño.
+      const accessToken = generateManageToken();
       const sent = await notify({
         db,
         idempotencyKey: `match:${match.id}:notify:${contact.id}`,
@@ -157,10 +167,37 @@ Deno.serve(async (req) => {
         to: contact.value,
         matchId: match.id as string,
         template: 'match_found',
-        variables: { share_url: `${appBaseUrl}/r/${otherDogId}` },
+        variables: {
+          share_url: buildMatchUrl(appBaseUrl, selfDogId, match.id as string, accessToken),
+        },
         fallbackEmail: email && contact.channel === 'whatsapp' ? { contactId: email.id, to: email.value } : null,
       });
-      if (sent) notifiedAny = true;
+
+      // El hash se guarda SOLO si el aviso salió: si el envío falla, el token
+      // nunca queda válido (falla cerrado). Mismo guardarraíl que `lifecycle`
+      // usa para no invalidar un enlace por un aviso que nadie recibió.
+      if (sent) {
+        const { error: tokenError } = await db
+          .from('matches')
+          .update({ [`${side}_access_token_hash`]: await hashManageToken(accessToken) })
+          .eq('id', match.id);
+        // Si el hash no se guarda, el aviso ya salió con un enlace que no va a
+        // autenticar. No se puede deshacer el WhatsApp, pero tiene que quedar
+        // en el log: el síntoma para la persona es "enlace vencido" y sin esto
+        // sería indistinguible de un token viejo. Pasa, por ejemplo, si la
+        // función se despliega antes que su migración.
+        if (tokenError) {
+          console.error(
+            JSON.stringify({
+              msg: 'match_access_token_not_stored',
+              match: match.id,
+              side,
+              error: tokenError.message,
+            }),
+          );
+        }
+        notifiedAny = true;
+      }
     }
 
     if (notifiedAny) {

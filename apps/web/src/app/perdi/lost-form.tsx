@@ -7,6 +7,7 @@ import { EditFichaForm } from '@/components/edit-ficha-form';
 import {
   Field,
   FlowHeading,
+  SubmitButton,
   controlClass,
   primaryButtonClass,
   secondaryButtonClass,
@@ -23,7 +24,7 @@ import { uploadPhoto } from '@/lib/client/upload';
 // la ficha y el usuario la corrige después (su corrección siempre gana).
 // ============================================================================
 
-type Stage = 'idle' | 'uploading' | 'analyzing' | 'searching' | 'done';
+type Stage = 'idle' | 'compressing' | 'uploading' | 'analyzing' | 'searching' | 'done';
 
 const t = content.flowA;
 const tb = content.flowB;
@@ -37,6 +38,8 @@ export function LostForm() {
   const [location, setLocation] = useState<LocationValue | null>(null);
   const [result, setResult] = useState<CreateReportResponse | null>(null);
   const [copied, setCopied] = useState(false);
+  /** Avance de la subida ("foto 3 de 5"); null cuando no aplica. */
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const startedRef = useRef(false);
   /** Candado síncrono contra el doble envío — ver la nota en found-form.tsx. */
   const submittingRef = useRef(false);
@@ -76,11 +79,18 @@ export function LostForm() {
     if (!location) return setError(tb.errors.missingLocation);
 
     try {
-      setStage('uploading');
+      // La señal visible va ANTES del trabajo pesado: comprimir hasta 5 fotos
+      // bloquea el hilo principal varios segundos y el botón se quedaba
+      // idéntico. Además se numera el avance, porque aquí la espera es larga y
+      // "no pasa nada" y "va en la 3 de 5" se sienten muy distinto.
+      setStage('compressing');
+      setProgress({ done: 0, total: photos.length });
       const photoPaths: string[] = [];
-      for (const photo of photos) {
-        photoPaths.push(await uploadPhoto(photo));
+      for (const [index, photo] of photos.entries()) {
+        setProgress({ done: index, total: photos.length });
+        photoPaths.push(await uploadPhoto(photo, setStage));
       }
+      setProgress(null);
       captureEvent('photo_uploaded', { report_type: 'lost', count: photoPaths.length });
 
       setStage('analyzing');
@@ -112,6 +122,7 @@ export function LostForm() {
       setStage('done');
     } catch (err) {
       setStage('idle');
+      setProgress(null);
       setError(err instanceof Error ? err.message : tb.errors.generic);
     }
   }
@@ -202,7 +213,7 @@ export function LostForm() {
       <FlowHeading title={t.heading} promise={t.promise} />
 
       <Field label={t.photosLabel} htmlFor="photos">
-        <PhotoPicker id="photos" name="photos" multiple />
+        <PhotoPicker id="photos" name="photos" multiple maxFiles={MAX_PHOTOS} />
       </Field>
 
       <LocationField label={t.locationLabel} value={location} onChange={setLocation} />
@@ -255,13 +266,20 @@ export function LostForm() {
           className="mb-4 flex items-center gap-[10px] rounded-[10px] border border-borde bg-crema-card p-3 text-[14px] font-semibold text-tinta"
         >
           <span className="h-[14px] w-[14px] shrink-0 animate-spin rounded-full border-2 border-ambar border-t-transparent" />
-          {tb.stages[stage === 'uploading' ? 'uploading' : stage === 'analyzing' ? 'analyzing' : 'searching']}
+          {tb.stages[stage as Exclude<Stage, 'idle' | 'done'>]}
+          {/* Con varias fotos, el número es la diferencia entre "se colgó" y
+              "está trabajando": la espera aquí puede ser de varios segundos. */}
+          {progress && progress.total > 1 && (
+            <span className="font-normal text-[#6b5a48]">
+              {t.photoProgress
+                .replace('{done}', String(progress.done + 1))
+                .replace('{total}', String(progress.total))}
+            </span>
+          )}
         </p>
       )}
 
-      <button type="submit" disabled={busy} className={primaryButtonClass}>
-        {t.submit}
-      </button>
+      <SubmitButton busy={busy} label={t.submit} busyLabel={tb.submitBusy} />
     </form>
   );
 }

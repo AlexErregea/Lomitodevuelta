@@ -94,6 +94,44 @@ export const primaryButtonClass =
   'hover:bg-ambar-oscuro focus:outline-none focus:ring-2 focus:ring-ambar/40 ' +
   'disabled:cursor-default disabled:opacity-60';
 
+/**
+ * Botón de envío de los flujos. Existe como componente porque el estado de
+ * "ya te oí" es parte del contrato del formulario, no un adorno: al tocar
+ * enviar, la compresión de la foto bloquea el hilo principal varios segundos y
+ * antes el botón se quedaba idéntico — la gente volvía a tocarlo, y eso llegó a
+ * duplicar reportes en producción.
+ *
+ * `aria-busy` comunica lo mismo a los lectores de pantalla, que no ven el giro.
+ */
+export function SubmitButton({
+  busy,
+  label,
+  busyLabel,
+}: {
+  busy: boolean;
+  label: string;
+  busyLabel: string;
+}) {
+  return (
+    <button type="submit" disabled={busy} aria-busy={busy} className={primaryButtonClass}>
+      <span className="flex items-center justify-center gap-[10px]">
+        {busy && <Spinner />}
+        {busy ? busyLabel : label}
+      </span>
+    </button>
+  );
+}
+
+/** Indicador de trabajo en curso, del mismo grosor que la tipografía del botón. */
+export function Spinner() {
+  return (
+    <span
+      aria-hidden="true"
+      className="h-[15px] w-[15px] shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent opacity-80"
+    />
+  );
+}
+
 /** Botón secundario sobre crema (ubicación, acciones de apoyo). */
 export const secondaryButtonClass =
   'rounded-[10px] border-[1.5px] border-[#cdbb9d] bg-white px-[18px] py-[11px] text-[15px] font-semibold ' +

@@ -34,3 +34,19 @@ export async function hashManageToken(token: string): Promise<string> {
 export function buildManageUrl(baseUrl: string, reportId: string, token: string): string {
   return `${baseUrl}/r/${reportId}/gestionar?t=${token}`;
 }
+
+/**
+ * Enlace del aviso de coincidencia: el panel del PROPIO reporte, no la ficha
+ * de la contraparte (que es anónima y no puede pedir nada). Misma ruta que el
+ * enlace de gestión —así encaja con la plantilla ya aprobada en Meta— pero con
+ * `m`, que hace que el token se valide contra ese match y no contra el reporte:
+ * permiso solo para responder esta coincidencia, sin acceso a editar ni borrar.
+ */
+export function buildMatchUrl(
+  baseUrl: string,
+  reportId: string,
+  matchId: string,
+  token: string,
+): string {
+  return `${baseUrl}/r/${reportId}/gestionar?m=${matchId}&t=${token}`;
+}

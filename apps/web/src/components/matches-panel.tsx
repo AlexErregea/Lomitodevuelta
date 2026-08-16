@@ -158,8 +158,12 @@ function MatchCard({ match, manageToken }: { match: ManagedMatch; manageToken: s
             {bands[match.scoreBand] ?? match.scoreBand}
           </span>
           <p className="mt-2 text-[14px] leading-[1.5] text-tinta">{match.explanation}</p>
+          {/* Pestaña nueva a propósito: la decisión se toma AQUÍ, y navegar
+              fuera dejaría a la persona otra vez en una página sin botones. */}
           <a
             href={`/r/${match.counterpart.reportId}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="mt-2 inline-block text-[14px] font-semibold text-ambar-texto underline"
           >
             {t.viewFicha}
