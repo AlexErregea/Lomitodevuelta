@@ -45,6 +45,70 @@ tú lo técnico dentro de las decisiones ya registradas.
 > aterriza `roadmap-tecnico.md` sobre el estado real desplegado. El sprint en
 > curso es el **Sprint 3-cierre** (blindar y lanzar el MVP).
 
+**MVP VERIFICADO EN PRODUCCIÓN** (2026-08-16): un reporte real recorrió la
+cadena completa — foto subida al bucket privado → embedding en Replicate →
+atributos con Claude → reporte creado → plantilla `manage_link` enviada →
+**entregada** por WhatsApp → webhook de Meta validado con el App Secret →
+`notifications.status = 'delivered'` → `contacts.verified_at` con fecha. El DoD
+del Sprint 1 dejó de ser una promesa. La entrega ES la verificación del número
+(ADR-0006), demostrado con datos reales.
+
+Coordenadas de producción: Supabase `wgpksrgqtmbnpwrfemgg` (us-east-1, plan
+Free), Vercel con **Root Directory `apps/web`** y framework `nextjs`, dominio
+**`lomitodevuelta.com`** con DNS en Cloudflare. El `.mx` nunca se compró: no debe
+aparecer en ningún texto. Las 4 Edge Functions desplegadas; 12 migraciones
+aplicadas con el historial reconciliado a las versiones del repo.
+
+**Trampas que costaron horas de depuración. No repetirlas:**
+
+- **Replicate se invoca por VERSIÓN, no por nombre de modelo.** El endpoint
+  `/v1/models/{owner}/{name}/predictions` solo existe para modelos *oficiales*;
+  los de la comunidad (`andreasjansson/clip-features`) van por `/v1/predictions`
+  con el hash de versión. Fijar el hash además cumple el ADR-0003: si el autor
+  publica otra versión, los vectores cambiarían de forma bajo la misma etiqueta.
+- **Con saldo menor a $5 USD, Replicate limita a 6 predicciones/minuto con
+  ráfaga de 1.** El pipeline dispara varias en paralelo y se ahoga solo (429).
+- **`packages/*` lleva extensión `.ts` explícita en sus imports relativos.** Deno
+  la exige y las Edge Functions consumen esos archivos como fuente (ADR-0001).
+  De ahí `allowImportingTsExtensions` en `tsconfig.base.json`, que a su vez exige
+  `noEmit` — se cumple porque nada de este monorepo emite JS.
+- **`on-report-created` tiene su propio `deno.json`.** El empaquetador del CLI
+  resuelve el import map relativo a la función, no a `supabase/functions/`.
+  Mantener ambos mapas sincronizados. Y si una función falla, el lote entero
+  aborta: desplegar por nombre cuando una esté rota.
+- **La versión de Graph API caduca cada ~2 años.** Hoy `v24.0` (octubre 2025),
+  con margen hasta finales de 2027. Está en `_shared/whatsapp.ts` y su espejo en
+  la web. Calendario: developers.facebook.com/docs/graph-api/changelog
+- **Vercel no promueve solo.** Los push a `master` crean *previews*; producción
+  solo avanza al promover a mano. Si algo "no se aplicó", revisar primero
+  Settings → Git → Production Branch antes de depurar código.
+- **Puede haber DOS cuentas de WhatsApp Business** (la del número de prueba y la
+  del real). El usuario del sistema necesita asignada la del número real, y los
+  permisos granulares **se congelan al emitir el token**: asignar un activo
+  después obliga a regenerarlo.
+- **`capture` en el input de foto está prohibido.** Fuerza la cámara y esconde la
+  galería, lo que pierde reportes de quien ya tenía la foto. El selector nativo
+  ya ofrece "Tomar foto" como primera opción.
+
+**Pendiente, por orden de impacto:**
+
+1. **El benchmark de embeddings sigue sin ejecutarse.** `visual_floor`/
+   `visual_ceil` valen 0.70/0.92, que son números inventados: **el score no está
+   calibrado y las coincidencias que muestre hoy no son confiables.** Es el
+   corazón de la tesis "motor de reunificación, no directorio". Requiere 15-25
+   perros con 3-5 fotos cada uno (`docs/benchmark-embeddings.md`).
+2. **`matching_params.embedding_model_version` dice `siglip-base-768/v1`** pero
+   el modelo real es CLIP ViT-L/14. Corregir la etiqueta en la fila activa **y**
+   en `dog_photos` a la vez: aquí no aplica "fila nueva", porque el modelo nunca
+   cambió — crear una partiría el inventario en dos mitades que jamás se
+   comparan.
+3. **Verificación de negocio en Meta** (RFC + Constancia de Situación Fiscal).
+   Sin ella, límites de mensajería. Trámite de días, no técnico.
+4. **El buzón `privacidad@lomitodevuelta.com` no existe.** El aviso lo declara
+   como canal para derechos ARCO; sin Email Routing en Cloudflare, ese derecho
+   es ficticio.
+5. El rediseño del estado de espera de la IA.
+
 **Paquete anti-abuso S3-A + consentimiento tácito S3-C** (2026-08-15):
 implementados en código, **pendientes de desplegar**. Lo que hay que saber:
 

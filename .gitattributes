@@ -1,0 +1,20 @@
+# ============================================================================
+# Fin de línea normalizado a LF en el repositorio.
+#
+# Sin esto, trabajar desde Windows reescribe los archivos con CRLF y Git los ve
+# TODOS como modificados: `git status` queda permanentemente sucio y un diff de
+# dos líneas se muestra como 267. Ya provocó una falsa alarma de que alguien
+# había editado una migración aplicada — la regla más dura del proyecto.
+#
+# `text=auto eol=lf` guarda LF en el repo y deja que Git decida en el árbol de
+# trabajo, así que no rompe a nadie en Windows.
+# ============================================================================
+* text=auto eol=lf
+
+# Binarios: nunca tocar.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.svg text eol=lf
+*.ico binary
