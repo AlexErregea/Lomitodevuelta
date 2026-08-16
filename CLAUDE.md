@@ -67,7 +67,22 @@ aplicadas con el historial reconciliado a las versiones del repo.
   con el hash de versión. Fijar el hash además cumple el ADR-0003: si el autor
   publica otra versión, los vectores cambiarían de forma bajo la misma etiqueta.
 - **Con saldo menor a $5 USD, Replicate limita a 6 predicciones/minuto con
-  ráfaga de 1.** El pipeline dispara varias en paralelo y se ahoga solo (429).
+  ráfaga de 1**, y lo dice en el cuerpo del 429 junto con el `retry_after`
+  exacto. El pipeline se ahogaba solo disparando las embeddings en paralelo;
+  desde el 2026-08-16 van **en serie** y los reintentos respetan esa espera.
+  Reglas que se derivan y hay que mantener:
+  - **Nunca abanicar peticiones a Replicate.** Un límite en ráfaga convierte el
+    paralelismo en fallos garantizados: un reporte de 5 fotos perdió 4, mientras
+    uno de 1 foto pasó bien cinco minutos antes.
+  - **Un throttle NO es una inferencia fallida y no gasta un intento**
+    (`retry-pending`). Si los gastara, cinco 429 dejarían el reporte en `failed`
+    con los intentos agotados y fuera del matching para siempre — lo contrario
+    de la regla de oro del ADR-0003.
+  - El texto "less than $5.0 in credit" lo calcula Replicate sobre **la cuenta
+    dueña del token**. Si no cuadra con el saldo que crees tener, revisa a qué
+    cuenta pertenece el token (personal vs. organización, facturación separada)
+    y si los fondos son *crédito prepagado* o solo un método de pago; y recuerda
+    que Vercel y los secretos de Supabase guardan el token por separado.
 - **`packages/*` lleva extensión `.ts` explícita en sus imports relativos.** Deno
   la exige y las Edge Functions consumen esos archivos como fuente (ADR-0001).
   De ahí `allowImportingTsExtensions` en `tsconfig.base.json`, que a su vez exige

@@ -250,6 +250,9 @@ export async function POST(request: NextRequest) {
       latency_ms: vision.latencyMs,
       embedding_model: config.embeddingModelVersion,
       errors: vision.errors,
+      // Distingue "el proveedor nos frenó" de "la inferencia falló": sin esto,
+      // un problema de cupo se lee en las métricas como un pipeline roto.
+      throttled: vision.throttled,
     },
   });
   await recordEvent({
