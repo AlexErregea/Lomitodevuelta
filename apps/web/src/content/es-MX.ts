@@ -249,7 +249,17 @@ export const content = {
     empty: 'Aún no hay coincidencias. El sistema sigue buscando y te avisará por WhatsApp.',
     counterpartLost: 'Perro perdido que podría ser el que encontraste',
     counterpartFound: 'Perro encontrado que podría ser el tuyo',
-    viewFicha: 'Ver ficha completa',
+    // Abre en pestaña nueva: si navega en la misma, la persona pierde los
+    // botones y vuelve al problema que este enlace vino a resolver.
+    viewFicha: 'Ver más detalles de este perro',
+    // Página del aviso de coincidencia (llegas desde el WhatsApp). El
+    // encabezado dice a qué viniste: leer "gestiona tu reporte" obligaba a
+    // adivinar qué se esperaba de ti.
+    linkHeading: 'Encontramos una posible coincidencia',
+    linkPromise:
+      'Mira las fotos y dinos si es el perro. Nadie recibe tu contacto hasta que las dos partes lo confirmen.',
+    linkScopeNote:
+      'Este enlace sirve solo para responder esta coincidencia. Para editar, renovar o cerrar tu reporte, usa el enlace que te enviamos cuando lo creaste.',
     // Aceptación
     acceptFound: 'Sí, es el perro que encontré',
     acceptLost: 'Sí, es mi perro',

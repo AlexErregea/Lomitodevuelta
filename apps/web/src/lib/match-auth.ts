@@ -6,10 +6,21 @@ import { verifyManageToken } from './manage-token';
 import { supabaseAdmin } from './supabase-admin';
 
 // ============================================================================
-// Autenticación de una acción de match por LADO (ADR-0006). El token de
-// gestión viaja en X-Manage-Token; `side` dice cuál de los dos reportes del
-// match es el del solicitante. El token se compara contra el hash del dog de
-// ese lado: pedir una acción del lado ajeno da 403 (el token no cuadra).
+// Autenticación de una acción de match por LADO (ADR-0006). El token viaja en
+// X-Manage-Token; `side` dice cuál de los dos reportes del match es el del
+// solicitante, y el token se compara contra el hash de ese lado: pedir una
+// acción del lado ajeno da 403.
+//
+// Se aceptan DOS credenciales, y en ese orden:
+//
+//   1. El token de gestión del reporte (el enlace que la persona guardó).
+//   2. El token de acceso de ESTE match y ESE lado (migración 13), que es el
+//      que viaja en el aviso de coincidencia. No sirve para editar ni borrar
+//      el reporte: solo para responder esta coincidencia.
+//
+// La segunda credencial se compara contra la columna del lado solicitado, así
+// que un token del lado 'found' no puede autorizar una acción como 'lost'
+// (que es quien aporta la prueba de propiedad).
 // ============================================================================
 
 const idSchema = z.string().uuid();
@@ -50,7 +61,9 @@ export async function authenticateMatchSide(
   const db = supabaseAdmin();
   const { data: match } = await db
     .from('matches')
-    .select('id, status, dog_lost_id, dog_found_id, lost_accepted_at, found_accepted_at, ownership_proof')
+    .select(
+      'id, status, dog_lost_id, dog_found_id, lost_accepted_at, found_accepted_at, ownership_proof, lost_access_token_hash, found_access_token_hash',
+    )
     .eq('id', matchId)
     .single();
   if (!match) return { ok: false, response: apiError('not_found', 'Coincidencia no encontrada.') };
@@ -67,7 +80,17 @@ export async function authenticateMatchSide(
   if (!selfDog || selfDog.deleted_at !== null) {
     return { ok: false, response: apiError('not_found', 'Coincidencia no encontrada.') };
   }
-  if (!selfDog.manage_token_hash || !verifyManageToken(token, selfDog.manage_token_hash as string)) {
+  // Credencial 1: el token de gestión del propio reporte.
+  const byManageToken =
+    Boolean(selfDog.manage_token_hash) &&
+    verifyManageToken(token, selfDog.manage_token_hash as string);
+  // Credencial 2: el token del aviso de coincidencia, del lado solicitado.
+  const sideTokenHash = (side === 'lost'
+    ? match.lost_access_token_hash
+    : match.found_access_token_hash) as string | null;
+  const byMatchToken = Boolean(sideTokenHash) && verifyManageToken(token, sideTokenHash as string);
+
+  if (!byManageToken && !byMatchToken) {
     return { ok: false, response: apiError('forbidden', 'El token no corresponde a este reporte.') };
   }
 
@@ -92,6 +115,38 @@ export async function authenticateMatchSide(
       },
     },
   };
+}
+
+/**
+ * Valida el enlace del aviso de coincidencia (`/r/{id}/gestionar?m=…&t=…`) para
+ * renderizar la página. Devuelve el lado que el token acredita, o null.
+ *
+ * El lado NO lo dice la URL: se deduce de cuál de los dos hashes coincidió. Así
+ * la página no puede ser engañada pidiéndole otro lado, y el reporte de la ruta
+ * tiene que ser de verdad el de ese lado del match.
+ */
+export async function authenticateMatchLink(
+  reportId: string,
+  matchId: string,
+  token: string,
+): Promise<{ side: MatchSide } | null> {
+  if (!idSchema.safeParse(reportId).success || !idSchema.safeParse(matchId).success) return null;
+
+  const { data: match } = await supabaseAdmin()
+    .from('matches')
+    .select('dog_lost_id, dog_found_id, lost_access_token_hash, found_access_token_hash')
+    .eq('id', matchId)
+    .single();
+  if (!match) return null;
+
+  for (const side of ['lost', 'found'] as const) {
+    const hash = (side === 'lost'
+      ? match.lost_access_token_hash
+      : match.found_access_token_hash) as string | null;
+    const dogId = (side === 'lost' ? match.dog_lost_id : match.dog_found_id) as string;
+    if (hash && dogId === reportId && verifyManageToken(token, hash)) return { side };
+  }
+  return null;
 }
 
 async function contactIdFor(db: ReturnType<typeof supabaseAdmin>, dogId: string): Promise<string | null> {

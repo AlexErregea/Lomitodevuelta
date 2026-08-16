@@ -185,9 +185,12 @@ async function sendEmail(to: string, template: string, variables: Record<string,
 }
 
 const EMAIL_BODIES: Record<string, (v: Record<string, string>) => { subject: string; html: string }> = {
+  // El enlace lleva al panel del PROPIO reporte acotado a esta coincidencia,
+  // así que el copy pide justo lo que esa página permite hacer. Antes decía
+  // "abre tu enlace de gestión", que obligaba a ir a buscar otro mensaje.
   match_found: (v) => ({
     subject: '🐕 Hay una posible coincidencia — LomitoDeVuelta',
-    html: `<p>Encontramos un reporte que podría coincidir con el tuyo.</p><p><a href="${v.share_url}">Ver la ficha</a>. Abre tu enlace de gestión para aceptar o descartar.</p>`,
+    html: `<p>Encontramos un reporte que podría coincidir con el tuyo.</p><p><a href="${v.share_url}">Revisa la coincidencia y dinos si es él</a>.</p><p>Nadie recibe tu contacto hasta que ambas partes lo confirmen.</p>`,
   }),
   renewal_reminder: (v) => ({
     subject: 'Tu reporte vence pronto — ¿lo renuevas?',
