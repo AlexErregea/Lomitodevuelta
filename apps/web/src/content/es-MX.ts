@@ -142,6 +142,12 @@ export const content = {
     selectedOne: '1 foto lista',
     selectedMany: 'fotos listas',
     change: 'Cambiar',
+    addMore: 'Agregar más fotos',
+    // La miniatura responde "¿cuál elegí?"; el tache permite corregirlo sin
+    // abandonar la página, que antes era la única salida.
+    remove: 'Quitar foto',
+    primary: 'Principal',
+    limitReached: 'Máximo {max} fotos: no agregamos las demás.',
   },
   // Campo de ubicación, compartido por los dos flujos. El respaldo manual no es
   // un caso borde: mucha gente niega el permiso de ubicación por instinto.
@@ -187,6 +193,9 @@ export const content = {
       '. Tu número nunca se muestra en público: solo verán una máscara como •• •• 1234.',
     privacyLink: 'Aviso de privacidad',
     submit: 'Buscar a su familia',
+    // El botón cambia de texto además de deshabilitarse: la compresión de la
+    // foto bloquea el hilo unos segundos y sin señal la gente vuelve a tocar.
+    submitBusy: 'Enviando…',
     stages: {
       compressing: 'Preparando la foto…',
       uploading: 'Subiendo la foto…',
@@ -210,6 +219,8 @@ export const content = {
     marksLabel: 'Señas particulares (opcional — la IA también detecta algunas)',
     marksPlaceholder: 'Ej. "mancha blanca en el pecho, collar rojo"',
     submit: 'Crear reporte y buscar',
+    /** Avance visible de la subida cuando hay más de una foto. */
+    photoProgress: '({done} de {total})',
     editHeading: 'Revisa la ficha que armó la IA',
     editBody: 'Corrige lo que no coincida: tu corrección siempre gana.',
   },

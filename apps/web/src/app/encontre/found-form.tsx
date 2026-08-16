@@ -5,8 +5,8 @@ import type { CreateReportRequest, CreateReportResponse } from '@lomito/shared';
 import {
   Field,
   FlowHeading,
+  SubmitButton,
   controlClass,
-  primaryButtonClass,
   secondaryButtonClass,
 } from '@/components/flow-shell';
 import { ConsentNotice } from '@/components/consent-notice';
@@ -26,7 +26,7 @@ import { uploadPhoto } from '@/lib/client/upload';
 // del módulo de contenido (regla i18n).
 // ============================================================================
 
-type Stage = 'idle' | 'uploading' | 'analyzing' | 'searching' | 'done';
+type Stage = 'idle' | 'compressing' | 'uploading' | 'analyzing' | 'searching' | 'done';
 
 const t = content.flowB;
 const tr = content.results;
@@ -84,8 +84,12 @@ export function FoundForm() {
     if (!location) return setError(t.errors.missingLocation);
 
     try {
-      setStage('uploading');
-      const storagePath = await uploadPhoto(photo);
+      // Primero la señal visible, y solo después el trabajo pesado: la
+      // compresión bloquea el hilo principal y sin ceder el turno el botón se
+      // quedaba idéntico varios segundos. uploadPhoto vuelve a ceder entre sus
+      // fases (ver lib/client/next-paint.ts).
+      setStage('compressing');
+      const storagePath = await uploadPhoto(photo, setStage);
       captureEvent('photo_uploaded', { report_type: 'found' });
 
       setStage('analyzing');
@@ -191,9 +195,7 @@ export function FoundForm() {
         </p>
       )}
 
-      <button type="submit" disabled={busy} className={primaryButtonClass}>
-        {t.submit}
-      </button>
+      <SubmitButton busy={busy} label={t.submit} busyLabel={t.submitBusy} />
     </form>
   );
 }
