@@ -23,10 +23,67 @@ export interface NotifyInput {
   fallbackEmail?: { contactId: string; to: string } | null;
 }
 
-/** ¿WhatsApp pausado por el kill-switch de presupuesto? (ADR-0008) */
+/** Topes por defecto si system_config no responde: nunca "sin límite". */
+const FALLBACK_MAX_MESSAGES_PER_CONTACT_DAY = 3;
+
+/**
+ * ¿WhatsApp indisponible? Pausa manual del kill-switch O presupuesto agotado.
+ *
+ * El presupuesto se evalúa antes de CADA envío (S3-A.4), no una vez al día en
+ * `lifecycle`: esa ventana permitía gastar muy por encima del tope durante
+ * hasta 24 h. Al agotarse se persiste la pausa para que todo el sistema —web
+ * y funciones— degrade a email en el acto.
+ */
 export async function isWhatsAppPaused(db: SupabaseClient): Promise<boolean> {
-  const { data } = await db.from('system_config').select('whatsapp_paused').eq('id', true).single();
-  return Boolean(data?.whatsapp_paused);
+  const { data } = await db
+    .from('system_config')
+    .select('whatsapp_paused, monthly_message_budget')
+    .eq('id', true)
+    .single();
+  if (!data) return false;
+  if (data.whatsapp_paused) return true;
+
+  const monthStart = new Date();
+  monthStart.setUTCDate(1);
+  monthStart.setUTCHours(0, 0, 0, 0);
+  const { count } = await db
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('channel', 'whatsapp')
+    .in('status', ['sent', 'delivered'])
+    .gte('created_at', monthStart.toISOString());
+
+  const used = count ?? 0;
+  const budget = data.monthly_message_budget as number;
+  if (used < budget) return false;
+
+  console.warn(JSON.stringify({ msg: 'budget_exhausted_pausing_whatsapp', used, budget }));
+  await db.from('system_config').update({ whatsapp_paused: true }).eq('id', true);
+  return true;
+}
+
+/**
+ * ¿Este destino ya recibió sus mensajes del día? (S3-A.3)
+ *
+ * Cuenta por `value_hash` del contacto, así que diez reportes creados con el
+ * número de una misma víctima comparten cupo. Mata el vector de bombardeo:
+ * es la mayor amenaza al número de WhatsApp del proyecto, porque una racha de
+ * bloqueos de usuarios hunde el quality rating de Meta.
+ */
+export async function contactCapReached(db: SupabaseClient, contactId: string): Promise<boolean> {
+  const [{ data: config }, { data: sentToday }] = await Promise.all([
+    db.from('system_config').select('max_messages_per_contact_per_day').eq('id', true).single(),
+    db.rpc('notifications_last_day_for_contact', { p_contact_id: contactId }),
+  ]);
+  const max =
+    (config?.max_messages_per_contact_per_day as number | undefined) ??
+    FALLBACK_MAX_MESSAGES_PER_CONTACT_DAY;
+  const used = typeof sentToday === 'number' ? sentToday : 0;
+  if (used >= max) {
+    console.warn(JSON.stringify({ msg: 'contact_cap_reached', contactId, used, max }));
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -35,6 +92,11 @@ export async function isWhatsAppPaused(db: SupabaseClient): Promise<boolean> {
  */
 export async function notify(input: NotifyInput): Promise<boolean> {
   const { db } = input;
+
+  // 0) Tope anti-bombardeo, antes del ledger: un mensaje que no se va a enviar
+  //    tampoco debe quemar su clave de idempotencia (si no, el destinatario se
+  //    quedaría sin ese aviso para siempre, no solo hoy).
+  if (await contactCapReached(db, input.contactId)) return false;
 
   // 1) Ledger primero: la unicidad de idempotency_key previene el duplicado.
   const { data: row, error } = await db

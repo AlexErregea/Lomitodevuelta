@@ -72,7 +72,11 @@ interface CreateReportRequest {
   geo: { lat: number; lng: number }; // punto exacto; el servidor difumina lo público
   eventDate: string;                 // ISO date
   contact: { channel: 'whatsapp' | 'email'; value: string };  // E.164 o email
-  consentAccepted: true;             // literal: sin consentimiento no hay reporte
+  turnstileToken?: string;           // solo se exige si el entorno tiene llaves de Turnstile
+  // Sin campo de consentimiento: es TÁCITO (decisión 2026-08-12). Publicar el
+  // reporte es el acto de consentimiento y el formulario referencia el aviso
+  // justo antes del botón; el servidor registra la evidencia en `contacts`
+  // (consent_given_at + consent_version). Ver security-privacy.md §4.
   // Flujo A (opcionales; la IA los completa y el usuario corrige después):
   attributes?: DogAttributes;        // packages/shared (ver matching-engine.md §8)
   distinctiveMarks?: string;
@@ -128,17 +132,40 @@ interface RejectMatchRequest { side: 'lost' | 'found'; reason?: string; }
 | `conflict` | 409 | Transición de estado inválida (p. ej. aceptar un match rechazado) |
 | `rate_limited` | 429 | Ver §6; incluye `Retry-After` |
 | `inference_unavailable` | 503 | Pipeline de visión caído — el reporte SE CREÓ (queda `pending`); el cliente lo comunica así |
+| `service_unavailable` | 503 | Circuit breaker global: se alcanzó `system_config.max_reports_per_day` y NO se creó nada. Incluye `Retry-After` |
 | `internal_error` | 500 | Todo lo demás; sin detalles internos en `message` |
 
 ## 6. Rate limits (anti-abuso y anti-scraping, security-privacy.md §6)
 
-| Límite | Alcance | Valor MVP |
-|---|---|---|
-| Creación de reportes | por `value_hash` de contacto | 5/día |
-| Creación de reportes | por IP | 10/día |
-| Firmas de subida | por IP | 30/hora |
-| Lectura de candidatos | por manage-token | 60/hora |
-| Fichas públicas | por IP | 300/hora (el share masivo de WhatsApp es legítimo) |
+Todos los umbrales activos son **columnas de `system_config`**: se ajustan con un
+UPDATE y surten efecto en el siguiente request, sin desplegar. Las **ventanas**
+sí viven en el código (`WINDOWS` en `lib/rate-limit.ts`): una ventana es parte
+del diseño del limitador, no una perilla de operación.
 
-Implementación MVP: contadores en Postgres (los volúmenes lo permiten de sobra);
+| Límite | Alcance | Columna de `system_config` | Default | Estado |
+|---|---|---|---|---|
+| Creación de reportes | por IP / hora | `reports_per_ip_hour` | 3 | ✅ S3-A |
+| Creación de reportes | por IP / día | `reports_per_ip_day` | 10 | ✅ S3-A |
+| Creación de reportes | por `value_hash` de contacto / día | `reports_per_contact_day` | 5 | ✅ S3-A |
+| Creación de reportes | **global (circuit breaker)** → 503 | `max_reports_per_day` | 200 | ✅ S3-A |
+| Firmas de subida | por IP / hora | `upload_signs_per_ip_hour` | 15 | ✅ S3-A |
+| Mensajes salientes | por `value_hash` destino / día | `max_messages_per_contact_per_day` | 3 | ✅ S3-A |
+| Lectura de candidatos | por manage-token | — | 60/hora | pendiente (S4) |
+| Fichas públicas | por IP | — | 300/hora (el share masivo de WhatsApp es legítimo) | pendiente (S4) |
+
+Si `system_config` no responde, se usan los umbrales de respaldo de
+`FALLBACK_LIMITS` (los mismos defaults): una base caída nunca abre la puerta.
+
+La ráfaga por hora (3) se agregó en el S3-A junto al acumulado diario: sin ella,
+las 10 altas del día podían salir en diez segundos, que es exactamente la forma
+de un script. Las firmas de subida bajaron de 30 a 15/hora — sigue siendo el
+triple de lo que consume un Flujo A completo (5 fotos).
+
+Implementación: contadores en Postgres (`rate_limit_counters` +
+`consume_rate_limits()`, migración 12), una sola llamada atómica por request.
 Upstash/Redis solo si algún límite se vuelve cuello de botella (fase posterior).
+Las cubetas guardan hashes, nunca la IP en claro (la IP es dato personal).
+
+**Turnstile** (Cloudflare, invisible) protege `POST /api/reports` cuando el
+entorno tiene llaves; sin ellas, el servidor no exige token y el sitio se
+comporta igual que antes.

@@ -1,5 +1,6 @@
 import { WhatsAppNotificationProvider } from './providers/whatsapp';
 import { optionalEnv } from './env';
+import { contactCapReached } from './notify';
 import { supabaseAdmin } from './supabase-admin';
 
 // ============================================================================
@@ -20,6 +21,16 @@ export async function enqueueManageLinkNotification(input: {
 }): Promise<void> {
   const db = supabaseAdmin();
   const idempotencyKey = `manage_link:${input.dogId}`;
+
+  // Tope anti-bombardeo (S3-A.3). Aplica también aquí, y no solo en
+  // sendNotification, porque este es el camino que recorre CADA alta: sin él,
+  // crear reportes con el número de una víctima la inunda de enlaces. Quien
+  // reporta de buena fe no se queda sin nada — la respuesta de la API le
+  // devuelve el manageUrl en pantalla para copiarlo.
+  if (await contactCapReached(input.contactId)) {
+    console.warn(JSON.stringify({ msg: 'manage_link_capped', dogId: input.dogId }));
+    return;
+  }
 
   const { data: row, error } = await db
     .from('notifications')

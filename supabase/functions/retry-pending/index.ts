@@ -13,6 +13,7 @@
 import { adminClient, PHOTOS_BUCKET } from '../_shared/db.ts';
 import { optionalEnv, requireEnv } from '../_shared/env.ts';
 import { buildManageUrl, generateManageToken, hashManageToken } from '../_shared/manage-token.ts';
+import { isWhatsAppPaused } from '../_shared/notify.ts';
 import { embedImage, extractAttributes, type ExtractionResult } from '../_shared/vision.ts';
 import { sendWhatsAppTemplate } from '../_shared/whatsapp.ts';
 
@@ -182,7 +183,14 @@ Deno.serve(async (req) => {
     .lt('attempts', MAX_NOTIFICATION_ATTEMPTS)
     .limit(BATCH_SIZE);
 
+  // El kill-switch tiene que valer también aquí: si el presupuesto se agotó,
+  // los mensajes que quedaron en cola NO pueden colarse por la puerta de atrás
+  // del reintento (S3-A.4). Se quedan encolados hasta que el mes cambie o el
+  // fundador reactive; el fallback a email sigue funcionando.
+  const whatsappPaused = await isWhatsAppPaused(db);
+
   for (const notification of pendingNotifications ?? []) {
+    if (notification.channel === 'whatsapp' && whatsappPaused) continue;
     const { data: contact } = await db
       .from('contacts')
       .select('id, dog_id, channel, value')

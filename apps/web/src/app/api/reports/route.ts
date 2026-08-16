@@ -15,7 +15,17 @@ import { toWkt } from '@/lib/geo';
 import { buildManageUrl, generateManageToken, hashManageToken } from '@/lib/manage-token';
 import { loadActiveMatchingConfig } from '@/lib/matching-config';
 import { enqueueManageLinkNotification } from '@/lib/notifications';
+import {
+  WINDOWS,
+  clientIp,
+  consumeRateLimits,
+  contactBucket,
+  humanizeWait,
+  ipBucket,
+  loadRateLimitConfig,
+} from '@/lib/rate-limit';
 import { PHOTOS_BUCKET, supabaseAdmin } from '@/lib/supabase-admin';
+import { verifyTurnstile } from '@/lib/turnstile';
 import { runVisionPipeline } from '@/lib/vision-pipeline';
 
 // ============================================================================
@@ -33,6 +43,9 @@ const PHOTO_PATH_PATTERN = /^citizen\/\d{4}\/\d{2}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9
 
 /** Retención LFPDPPP (security-privacy.md §5): vigencia inicial de 60 días. */
 const REPORT_TTL_DAYS = 60;
+
+/** Cubeta del circuit breaker: una sola para toda la plataforma. */
+const GLOBAL_REPORTS_BUCKET = 'global:reports:day';
 
 export async function POST(request: NextRequest) {
   let body: unknown;
@@ -54,6 +67,74 @@ export async function POST(request: NextRequest) {
   }
 
   const db = supabaseAdmin();
+
+  // ---- Defensas anti-abuso (S3-A) ------------------------------------------
+  // Van ANTES de firmar lecturas, llamar a la IA o escribir nada: esta ruta es
+  // la única del sistema que gasta dinero real por request, y el crédito de
+  // los proveedores es prepago (un pico no genera una factura, genera un
+  // apagón del pipeline). Orden deliberado: primero lo barato (una consulta a
+  // la base), después la llamada de red a Cloudflare.
+  const ip = clientIp(request);
+  const contactValueHash = hashContactValue(input.contact.channel, input.contact.value);
+
+  // Los umbrales viven en system_config: ajustarlos durante una prueba en campo
+  // o el día del lanzamiento es un UPDATE, no un despliegue.
+  const limits = await loadRateLimitConfig();
+  const limit = await consumeRateLimits([
+    {
+      key: ipBucket('report-hour', ip),
+      windowSeconds: WINDOWS.reportsPerIpHour,
+      limit: limits.reportsPerIpHour,
+    },
+    {
+      key: ipBucket('report-day', ip),
+      windowSeconds: WINDOWS.reportsPerIpDay,
+      limit: limits.reportsPerIpDay,
+    },
+    {
+      key: contactBucket('report-day', contactValueHash),
+      windowSeconds: WINDOWS.reportsPerContactDay,
+      limit: limits.reportsPerContactDay,
+    },
+    {
+      key: GLOBAL_REPORTS_BUCKET,
+      windowSeconds: WINDOWS.globalReportsDay,
+      limit: limits.maxReportsPerDay,
+    },
+  ]);
+  if (!limit.allowed) {
+    const isGlobal = limit.blockedKey === GLOBAL_REPORTS_BUCKET;
+    await recordEvent({
+      eventType: 'report_throttled',
+      payload: { reason: isGlobal ? 'global_cap' : 'rate_limit', report_type: input.reportType },
+    });
+    // El tope global no es culpa de quien reporta: se le habla distinto y se
+    // le responde 503, no 429 (api-contracts.md §5).
+    if (isGlobal) {
+      return apiError(
+        'service_unavailable',
+        'Estamos recibiendo muchísimos reportes ahora mismo y pausamos las altas por unas horas para no dejar el servicio sin funcionar. Por favor inténtalo más tarde: tu perro sigue siendo prioridad.',
+        { 'Retry-After': String(limit.retryAfterSeconds) },
+      );
+    }
+    return apiError(
+      'rate_limited',
+      `Ya recibimos varios reportes desde aquí. Vuelve a intentarlo ${humanizeWait(limit.retryAfterSeconds)}. Si necesitas reportar más perros, escríbenos.`,
+      { 'Retry-After': String(limit.retryAfterSeconds) },
+    );
+  }
+
+  const turnstile = await verifyTurnstile(input.turnstileToken, ip);
+  if (!turnstile.ok) {
+    await recordEvent({
+      eventType: 'report_throttled',
+      payload: { reason: 'turnstile', detail: turnstile.reason ?? null },
+    });
+    return apiError(
+      'validation_error',
+      'No pudimos verificar que eres una persona. Recarga la página e inténtalo de nuevo.',
+    );
+  }
 
   // Configuración activa del matching y zona de operación (MVP: CDMX).
   const config = await loadActiveMatchingConfig();
@@ -149,7 +230,7 @@ export async function POST(request: NextRequest) {
       dog_id: dog.id,
       channel: input.contact.channel,
       value: contactValue,
-      value_hash: hashContactValue(input.contact.channel, input.contact.value),
+      value_hash: contactValueHash,
       display_mask: maskContactValue(input.contact.channel, input.contact.value),
       // La versión EXACTA del aviso publicado que el usuario aceptó (LFPDPPP).
       consent_version: PRIVACY_VERSION,

@@ -62,9 +62,17 @@ directo — solo a través del matching, como cualquier otro candidato.
   + versión integral en `/privacidad`. El texto es contenido versionado:
   `contacts.consent_version` registra qué versión aceptó cada persona y
   `consent_given_at` cuándo.
-- Se recaba consentimiento **expreso** para: (a) usar el contacto para conectar con
-  la contraparte de un match, (b) mostrar públicamente fotos y ubicación difuminada.
-  Nada de marketing en MVP: un solo propósito, un solo checkbox.
+- Consentimiento **tácito, sin casilla** (decisión del fundador, 2026-08-12): la
+  LFPDPPP lo admite para datos que no son sensibles, y publicar el reporte es en
+  sí el acto de consentimiento. Cubre dos finalidades y ninguna más: (a) usar el
+  contacto para conectar con la contraparte de un match, (b) mostrar públicamente
+  fotos y ubicación difuminada. Nada de marketing en MVP.
+  - Lo que la ley pide poder demostrar es la evidencia, no la casilla: el
+    servidor registra `consent_given_at` y `consent_version` en cada alta, y el
+    formulario referencia el aviso justo arriba del botón de envío
+    (`components/consent-notice.tsx`).
+  - El checkbox del Sprint 2 se retiró en el Sprint 3-cierre: no probaba más y
+    costaba un tap en el paso donde más gente abandona.
 - **Derechos ARCO** (acceso, rectificación, cancelación, oposición): el enlace de
   gestión del reporte permite editar y borrar sin cuenta; borrar dispara el flujo de
   §5. Contacto para solicitudes manuales: correo del responsable en el aviso.

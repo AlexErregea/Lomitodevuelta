@@ -9,8 +9,10 @@ import {
   primaryButtonClass,
   secondaryButtonClass,
 } from '@/components/flow-shell';
+import { ConsentNotice } from '@/components/consent-notice';
 import { LocationField, type LocationValue } from '@/components/location-field';
 import { PhotoPicker } from '@/components/photo-picker';
+import { TurnstileField } from '@/components/turnstile-field';
 import { content } from '@/content/es-MX';
 import { captureEvent } from '@/lib/client/analytics';
 import { uploadPhoto } from '@/lib/client/upload';
@@ -51,11 +53,12 @@ export function FoundForm() {
     const whatsapp = String(formData.get('whatsapp') ?? '').trim();
     const eventDate = String(formData.get('eventDate') ?? '');
     const finderNote = String(formData.get('finderNote') ?? '').trim();
-    const consent = formData.get('consent') === 'on';
+    // Vacío si Turnstile no está configurado en este entorno: el servidor solo
+    // lo exige cuando hay llaves.
+    const turnstileToken = String(formData.get('turnstileToken') ?? '');
 
     if (!(photo instanceof File) || photo.size === 0) return setError(t.errors.missingPhoto);
     if (!location) return setError(t.errors.missingLocation);
-    if (!consent) return setError(t.errors.missingConsent);
 
     try {
       setStage('uploading');
@@ -69,7 +72,7 @@ export function FoundForm() {
         geo: { lat: location.lat, lng: location.lng },
         eventDate,
         contact: { channel: 'whatsapp', value: whatsapp },
-        consentAccepted: true,
+        ...(turnstileToken ? { turnstileToken } : {}),
         ...(location.addressText ? { addressText: location.addressText } : {}),
         ...(finderNote ? { finderNote } : {}),
       };
@@ -147,27 +150,8 @@ export function FoundForm() {
         />
       </Field>
 
-      {/* Consentimiento: la casilla y su texto se alinean en grid para que las
-          líneas siguientes no queden bajo la casilla. */}
-      <div className="mb-6 rounded-[12px] border border-borde bg-crema-card p-4">
-        <label htmlFor="consent" className="grid grid-cols-[auto_1fr] items-start gap-3">
-          <input id="consent" type="checkbox" name="consent" required className="mt-[3px] h-[18px] w-[18px] accent-ambar" />
-          <span className="text-[14px] leading-[1.55] text-[#5b4b3a]">
-            {t.consentLabel}{' '}
-            <a
-              href="/privacidad"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-ambar-texto underline"
-            >
-              {t.privacyLink}
-            </a>
-          </span>
-        </label>
-        <p className="mt-3 border-t border-borde pt-3 text-[13px] leading-[1.5] text-[#5b4b3a]">
-          {t.consentReassurance}
-        </p>
-      </div>
+      <TurnstileField />
+      <ConsentNotice />
 
       {error && (
         <p role="alert" className="mb-4 rounded-[10px] border border-perdido/30 bg-perdido/5 p-3 text-[14px] font-semibold text-perdido-texto">

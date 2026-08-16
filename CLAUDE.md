@@ -41,6 +41,37 @@ tú lo técnico dentro de las decisiones ya registradas.
 
 ## Estado del proyecto
 
+> El plan vigente es **`docs/plan-sprints-lomitodevuelta.md`** (2026-08-15):
+> aterriza `roadmap-tecnico.md` sobre el estado real desplegado. El sprint en
+> curso es el **Sprint 3-cierre** (blindar y lanzar el MVP).
+
+**Paquete anti-abuso S3-A + consentimiento tácito S3-C** (2026-08-15):
+implementados en código, **pendientes de desplegar**. Lo que hay que saber:
+
+- **Toda la DDL entra por `supabase/migrations/`, jamás por el dashboard.**
+  Producción tenía una migración a mano que el repo no
+  (`20260811183009`, recuperada el 15-ago). Si vuelve a pasar, `pnpm db:reset`
+  deja de reproducir producción y la siguiente migración se escribe a ciegas.
+- **Los topes viven en `system_config`**, nunca en el código (misma regla que
+  los pesos del matching): `max_reports_per_day`, `max_messages_per_contact_per_day`,
+  `monthly_message_budget`, `reports_per_ip_hour`, `reports_per_ip_day`,
+  `reports_per_contact_day`, `upload_signs_per_ip_hour`. Cambiarlos es un
+  UPDATE, no un despliegue. Las **ventanas** de tiempo sí son código
+  (`WINDOWS` en `lib/rate-limit.ts`): son diseño, no operación.
+- **Rate limit**: contadores en Postgres (`rate_limit_counters` +
+  `consume_rate_limits()`), envueltos en `apps/web/src/lib/rate-limit.ts`. Las
+  cubetas guardan hashes, nunca la IP en claro.
+- **Hay TRES caminos de envío de mensajes** y los tres deben respetar el tope
+  por destino: `lib/notify.ts` (web), `_shared/notify.ts` (Edge) y
+  `lib/notifications.ts` (enlace de gestión, que no pasa por `sendNotification`).
+  Al tocar notificaciones, revisar los tres.
+- **Consentimiento tácito, sin casilla** (decisión del fundador 2026-08-12,
+  ratificada el 15-ago): el contrato ya no lleva `consentAccepted`; la evidencia
+  la registra el servidor (`consent_given_at` + `consent_version`) y el aviso se
+  referencia con `components/consent-notice.tsx` arriba del botón.
+- **Turnstile está condicionado a llaves**: sin `TURNSTILE_SECRET_KEY` /
+  `NEXT_PUBLIC_TURNSTILE_SITE_KEY` no se carga el script ni se exige token.
+
 **Landing / cambio de rutas** (2026-07-31): la raíz `/` es ahora la landing de
 marketing (Server Component estático, `apps/web/src/app/page.tsx`, copy en
 `content.landing`). El Flujo B ("encontré") se movió de `/` a **`/encontre`**.

@@ -10,7 +10,6 @@ describe('createReportRequestSchema · addressText', () => {
     geo: { lat: 19.3467, lng: -99.1618 },
     eventDate: '2026-07-31',
     contact: { channel: 'whatsapp' as const, value: '+525512345678' },
-    consentAccepted: true as const,
   };
 
   it('es opcional: el camino con GPS no lo manda', () => {

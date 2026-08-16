@@ -174,12 +174,17 @@ export const content = {
     notePlaceholder: 'Ej. "Lo tengo en mi casa" o "Sigue en el parque de la esquina"',
     whatsappLabel: 'Tu WhatsApp (para avisarte si aparece su familia)',
     whatsappPlaceholder: '+52 55 1234 5678',
-    consentLabel:
-      'Acepto que mi contacto se use únicamente para conectarme si hay coincidencia, y que la foto y la ubicación aproximada se muestren públicamente.',
-    // Responde la objeción real antes de que la persona entregue su WhatsApp:
-    // el miedo no es legal, es "¿quién va a ver mi número?".
-    consentReassurance:
-      'Tu número nunca se muestra en público: quien vea tu ficha solo verá una máscara como •• •• 1234.',
+    // Consentimiento TÁCITO (decisión del fundador, 2026-08-12): publicar el
+    // reporte ES el consentimiento, así que no hay casilla — solo la
+    // referencia al aviso en el punto de recolección, que es lo que exige la
+    // LFPDPPP. La frase se parte en dos porque el enlace va en medio.
+    //
+    // La segunda oración no es relleno legal: responde la objeción real antes
+    // de que la persona entregue su WhatsApp. El miedo no es jurídico, es
+    // "¿quién va a ver mi número?".
+    consentNoticeBefore: 'Al publicar tu reporte aceptas nuestro ',
+    consentNoticeAfter:
+      '. Tu número nunca se muestra en público: solo verán una máscara como •• •• 1234.',
     privacyLink: 'Aviso de privacidad',
     submit: 'Buscar a su familia',
     stages: {
@@ -191,7 +196,6 @@ export const content = {
     errors: {
       missingPhoto: 'Necesitamos al menos una foto.',
       missingLocation: 'Necesitamos la ubicación para buscar cerca.',
-      missingConsent: 'Necesitamos tu consentimiento para crear el reporte.',
       generic: 'Algo salió mal. Tu foto no se perdió: intenta de nuevo.',
     },
   },

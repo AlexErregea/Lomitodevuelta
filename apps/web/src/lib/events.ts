@@ -21,7 +21,12 @@ export type FunnelEventType =
   | 'reunion_confirmed'
   | 'share_clicked'
   | 'report_renewed'
-  | 'report_deleted';
+  | 'report_deleted'
+  // Alta rechazada por una defensa anti-abuso (S3-A). No es parte del embudo
+  // de conversión, pero se registra en la misma tabla porque es la única
+  // manera de distinguir "nadie reportó" de "no dejamos reportar": el payload
+  // dice cuál defensa actuó (rate_limit | global_cap | turnstile).
+  | 'report_throttled';
 
 export async function recordEvent(input: {
   eventType: FunnelEventType;
