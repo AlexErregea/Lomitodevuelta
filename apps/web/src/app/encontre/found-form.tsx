@@ -38,6 +38,8 @@ export function FoundForm() {
   const [result, setResult] = useState<CreateReportResponse | null>(null);
   const [copied, setCopied] = useState(false);
   const startedRef = useRef(false);
+  /** Ver el candado en handleSubmit: síncrono, a prueba de doble toque. */
+  const submittingRef = useRef(false);
 
   const markStarted = () => {
     // Evento 1 del embudo, una sola vez por sesión de formulario.
@@ -48,6 +50,27 @@ export function FoundForm() {
   };
 
   async function handleSubmit(formData: FormData) {
+    // Candado síncrono contra el doble envío. `disabled={busy}` NO basta:
+    // `setStage` corre dentro de una acción de formulario, o sea como
+    // transición, y React puede diferir ese render. En esos milisegundos el
+    // botón sigue habilitado y un segundo toque entra completo — pasó en
+    // producción con 478 ms de separación. Un ref se actualiza de inmediato,
+    // sin depender del ciclo de render.
+    //
+    // Duplicar no es solo ruido: son dos subidas, dos inferencias que se
+    // cobran, dos mensajes de WhatsApp, dos llamadas simultáneas a Replicate
+    // que chocan con su ráfaga de 1 — y dos fichas del MISMO perro en el
+    // inventario, que la familia vería como dos coincidencias distintas.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    try {
+      await submitReport(formData);
+    } finally {
+      submittingRef.current = false;
+    }
+  }
+
+  async function submitReport(formData: FormData) {
     setError(null);
     const photo = formData.get('photo');
     const whatsapp = String(formData.get('whatsapp') ?? '').trim();

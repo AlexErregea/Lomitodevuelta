@@ -38,6 +38,8 @@ export function LostForm() {
   const [result, setResult] = useState<CreateReportResponse | null>(null);
   const [copied, setCopied] = useState(false);
   const startedRef = useRef(false);
+  /** Candado síncrono contra el doble envío — ver la nota en found-form.tsx. */
+  const submittingRef = useRef(false);
 
   const markStarted = () => {
     if (!startedRef.current) {
@@ -47,6 +49,19 @@ export function LostForm() {
   };
 
   async function handleSubmit(formData: FormData) {
+    // `disabled={busy}` no basta: la actualización de estado ocurre dentro de
+    // una acción de formulario (transición) y React puede diferir ese render.
+    // En el Flujo A duplicar cuesta más todavía: son hasta 5 fotos por reporte.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    try {
+      await submitReport(formData);
+    } finally {
+      submittingRef.current = false;
+    }
+  }
+
+  async function submitReport(formData: FormData) {
     setError(null);
     const photos = formData.getAll('photos').filter((f): f is File => f instanceof File && f.size > 0);
     const whatsapp = String(formData.get('whatsapp') ?? '').trim();
