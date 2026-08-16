@@ -14,7 +14,7 @@ import { adminClient, PHOTOS_BUCKET } from '../_shared/db.ts';
 import { optionalEnv, requireEnv } from '../_shared/env.ts';
 import { buildManageUrl, generateManageToken, hashManageToken } from '../_shared/manage-token.ts';
 import { isWhatsAppPaused } from '../_shared/notify.ts';
-import { embedImage, extractAttributes, type ExtractionResult } from '../_shared/vision.ts';
+import { embedImage, extractAttributes, isThrottleError, type ExtractionResult } from '../_shared/vision.ts';
 import { sendWhatsAppTemplate } from '../_shared/whatsapp.ts';
 
 const MAX_EMBEDDING_ATTEMPTS = 5;
@@ -22,6 +22,16 @@ const MAX_NOTIFICATION_ATTEMPTS = 3;
 const BATCH_SIZE = 10;
 /** Backoff lineal entre reintentos de visión: attempts × este intervalo. */
 const RETRY_SPACING_MS = 5 * 60 * 1000;
+/**
+ * Tiempo total que esta invocación puede pasar esperando a que se libere el
+ * cupo de Replicate. Respetar el `retry_after` de un 429 arregla el reintento
+ * (antes se reintentaba de inmediato y volvía a chocar), pero no puede comerse
+ * el reloj de la función: agotado el presupuesto, el resto queda para el
+ * siguiente tick del cron, que llega en 5 minutos.
+ */
+const MAX_THROTTLE_WAIT_MS = 40_000;
+
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 function unauthorized(): Response {
   return new Response(JSON.stringify({ error: { code: 'unauthorized', message: 'Secreto inválido.' } }), {
@@ -36,7 +46,15 @@ Deno.serve(async (req) => {
   }
 
   const db = adminClient();
-  const summary = { dogsProcessed: 0, dogsCompleted: 0, notificationsSent: 0, errors: [] as string[] };
+  const summary = {
+    dogsProcessed: 0,
+    dogsCompleted: 0,
+    dogsThrottled: 0,
+    notificationsSent: 0,
+    errors: [] as string[],
+  };
+  /** Presupuesto de espera compartido por todos los reportes de esta corrida. */
+  let throttleWaitLeftMs = MAX_THROTTLE_WAIT_MS;
 
   // -------------------------------------------------------------------------
   // 1) Reintentos del pipeline de visión
@@ -66,6 +84,8 @@ Deno.serve(async (req) => {
 
     await db.from('dogs').update({ embedding_status: 'processing' }).eq('id', dog.id);
     const errors: string[] = [];
+    /** Este reporte chocó con el cupo del proveedor, no con un fallo real. */
+    let throttled = false;
     try {
       const { data: photos } = await db
         .from('dog_photos')
@@ -87,16 +107,38 @@ Deno.serve(async (req) => {
           continue;
         }
         if (photo.embedding === null) {
-          try {
-            const vector = await embedImage(signed.signedUrl);
-            await db
-              .from('dog_photos')
-              .update({ embedding: `[${vector.join(',')}]`, embedding_model_version: modelVersion })
-              .eq('id', photo.id);
-          } catch (err) {
-            errors.push(`embedding foto ${photo.id}: ${String(err)}`);
+          // Un throttle se espera y se reintenta UNA vez con el retraso que el
+          // propio proveedor pide; antes se reintentaba al instante y volvía a
+          // chocar, quemando un intento del reporte por nada.
+          for (let pass = 0; pass < 2; pass++) {
+            try {
+              const vector = await embedImage(signed.signedUrl);
+              await db
+                .from('dog_photos')
+                .update({ embedding: `[${vector.join(',')}]`, embedding_model_version: modelVersion })
+                .eq('id', photo.id);
+              break;
+            } catch (err) {
+              if (!isThrottleError(err)) {
+                errors.push(`embedding foto ${photo.id}: ${String(err)}`);
+                break;
+              }
+              const waitMs = Math.min(err.retryAfterSeconds * 1000, throttleWaitLeftMs);
+              if (pass === 1 || waitMs <= 0) {
+                // Sigue frenado o se acabó el presupuesto de espera: este
+                // reporte se queda como estaba y lo retoma el próximo tick.
+                throttled = true;
+                errors.push(`embedding foto ${photo.id}: ${String(err)}`);
+                break;
+              }
+              throttleWaitLeftMs -= waitMs;
+              await sleep(waitMs);
+            }
           }
         }
+        // La extracción es de OTRO proveedor (Anthropic) y no comparte cupo:
+        // se intenta aunque Replicate esté frenado. Por eso el corte va aquí y
+        // no dentro del bloque de la embedding.
         if (needsExtraction && photo.id === primary?.id && extraction === null) {
           try {
             extraction = await extractAttributes(signed.signedUrl);
@@ -104,6 +146,7 @@ Deno.serve(async (req) => {
             errors.push(`extracción: ${String(err)}`);
           }
         }
+        if (throttled) break; // las demás fotos recibirían el mismo 429
       }
 
       if (extraction) {
@@ -139,20 +182,34 @@ Deno.serve(async (req) => {
         (photosAfter ?? []).every((p) => p.embedding !== null) &&
         (photosAfter ?? []).some((p) => p.is_primary && p.quality_score !== null);
 
+      // Un throttle NO gasta un intento. La regla de oro del ADR-0003 es que
+      // una inferencia fallida jamás pierde un reporte, y hasta hoy la violaba
+      // el caso más tonto: cinco 429 seguidos dejaban el reporte en 'failed'
+      // con los intentos agotados, fuera de esta consulta para siempre —
+      // invisible para el matching aunque el proveedor se recuperara en un
+      // minuto. Frenar no es fallar: el estado vuelve a 'pending' y el cron lo
+      // retoma indefinidamente hasta que haya cupo.
+      const throttledOnly = throttled && !complete;
+      const nextAttempts = throttledOnly
+        ? (dog.embedding_attempts as number)
+        : (dog.embedding_attempts as number) + 1;
+
       await db
         .from('dogs')
         .update({
-          embedding_status: complete ? 'done' : 'failed',
-          embedding_attempts: (dog.embedding_attempts as number) + 1,
+          embedding_status: complete ? 'done' : throttledOnly ? 'pending' : 'failed',
+          embedding_attempts: nextAttempts,
           embedding_last_error: errors.length ? errors.join(' | ') : null,
         })
         .eq('id', dog.id);
+
+      if (throttledOnly) summary.dogsThrottled++;
 
       await db.from('events').insert({
         event_type: errors.length === 0 ? 'extraction_done' : 'extraction_failed',
         actor_type: 'system',
         dog_id: dog.id,
-        payload: { retry: true, attempts: (dog.embedding_attempts as number) + 1, errors },
+        payload: { retry: true, attempts: nextAttempts, throttled, errors },
       });
 
       if (complete) {

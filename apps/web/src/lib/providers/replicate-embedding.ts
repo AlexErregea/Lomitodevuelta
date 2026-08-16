@@ -33,6 +33,58 @@ interface ReplicatePrediction {
   error: string | null;
 }
 
+/**
+ * 429 de Replicate: NO es una inferencia fallida, es una espera con duración
+ * conocida. Distinguirla importa porque el reintento la trata al revés que a
+ * un fallo real — un throttle no debe consumir intentos ni, por tanto, poder
+ * matar un reporte (ADR-0003: una inferencia fallida jamás pierde un reporte;
+ * mucho menos una que ni siquiera falló).
+ */
+export class ReplicateThrottleError extends Error {
+  readonly retryAfterSeconds: number;
+
+  constructor(retryAfterSeconds: number, detail: string) {
+    super(`Replicate throttled (reintentar en ~${retryAfterSeconds}s): ${detail}`);
+    this.name = 'ReplicateThrottleError';
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+/** ¿Es un throttle? Se pregunta por el nombre para cruzar límites de módulo. */
+export function isThrottleError(error: unknown): error is ReplicateThrottleError {
+  return error instanceof Error && error.name === 'ReplicateThrottleError';
+}
+
+/** Espera mínima y máxima que se respeta de un 429 (el resto lo hace el cron). */
+const MIN_RETRY_AFTER_SECONDS = 1;
+const MAX_RETRY_AFTER_SECONDS = 30;
+const DEFAULT_RETRY_AFTER_SECONDS = 10;
+
+/**
+ * Segundos de espera que pide Replicate. Los manda en el JSON del cuerpo
+ * (`retry_after`) y a veces en la cabecera estándar `Retry-After`; hasta hoy
+ * los ignorábamos por completo y reintentábamos de inmediato, que es la razón
+ * de que un throttle se repitiera intento tras intento.
+ */
+export function parseRetryAfterSeconds(body: string, header: string | null): number {
+  const clamp = (value: number): number =>
+    Math.min(MAX_RETRY_AFTER_SECONDS, Math.max(MIN_RETRY_AFTER_SECONDS, Math.ceil(value)));
+
+  try {
+    const parsed = JSON.parse(body) as { retry_after?: unknown };
+    if (typeof parsed.retry_after === 'number' && Number.isFinite(parsed.retry_after)) {
+      return clamp(parsed.retry_after);
+    }
+  } catch {
+    // Cuerpo no-JSON: se sigue con la cabecera.
+  }
+
+  const fromHeader = Number(header);
+  if (header && Number.isFinite(fromHeader)) return clamp(fromHeader);
+
+  return DEFAULT_RETRY_AFTER_SECONDS;
+}
+
 export class ReplicateEmbeddingProvider implements EmbeddingProvider {
   readonly modelVersion: string;
   readonly dimensions = EXPECTED_DIMENSIONS;
@@ -61,7 +113,14 @@ export class ReplicateEmbeddingProvider implements EmbeddingProvider {
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     if (!response.ok) {
-      throw new Error(`Replicate respondió ${response.status}: ${await response.text()}`);
+      const body = await response.text();
+      if (response.status === 429) {
+        throw new ReplicateThrottleError(
+          parseRetryAfterSeconds(body, response.headers.get('retry-after')),
+          body,
+        );
+      }
+      throw new Error(`Replicate respondió ${response.status}: ${body}`);
     }
 
     const prediction = (await response.json()) as ReplicatePrediction;
