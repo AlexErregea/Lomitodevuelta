@@ -137,16 +137,24 @@ interface RejectMatchRequest { side: 'lost' | 'found'; reason?: string; }
 
 ## 6. Rate limits (anti-abuso y anti-scraping, security-privacy.md §6)
 
-| Límite | Alcance | Valor MVP | Estado |
-|---|---|---|---|
-| Creación de reportes | por IP | **3/hora** | ✅ S3-A |
-| Creación de reportes | por IP | 10/día | ✅ S3-A |
-| Creación de reportes | por `value_hash` de contacto | 5/día | ✅ S3-A |
-| Creación de reportes | **global (circuit breaker)** | `system_config.max_reports_per_day` (default 200/día) → 503 | ✅ S3-A |
-| Firmas de subida | por IP | **15/hora** | ✅ S3-A |
-| Mensajes salientes | por `value_hash` destino | `system_config.max_messages_per_contact_per_day` (default 3/día) | ✅ S3-A |
-| Lectura de candidatos | por manage-token | 60/hora | pendiente (S4) |
-| Fichas públicas | por IP | 300/hora (el share masivo de WhatsApp es legítimo) | pendiente (S4) |
+Todos los umbrales activos son **columnas de `system_config`**: se ajustan con un
+UPDATE y surten efecto en el siguiente request, sin desplegar. Las **ventanas**
+sí viven en el código (`WINDOWS` en `lib/rate-limit.ts`): una ventana es parte
+del diseño del limitador, no una perilla de operación.
+
+| Límite | Alcance | Columna de `system_config` | Default | Estado |
+|---|---|---|---|---|
+| Creación de reportes | por IP / hora | `reports_per_ip_hour` | 3 | ✅ S3-A |
+| Creación de reportes | por IP / día | `reports_per_ip_day` | 10 | ✅ S3-A |
+| Creación de reportes | por `value_hash` de contacto / día | `reports_per_contact_day` | 5 | ✅ S3-A |
+| Creación de reportes | **global (circuit breaker)** → 503 | `max_reports_per_day` | 200 | ✅ S3-A |
+| Firmas de subida | por IP / hora | `upload_signs_per_ip_hour` | 15 | ✅ S3-A |
+| Mensajes salientes | por `value_hash` destino / día | `max_messages_per_contact_per_day` | 3 | ✅ S3-A |
+| Lectura de candidatos | por manage-token | — | 60/hora | pendiente (S4) |
+| Fichas públicas | por IP | — | 300/hora (el share masivo de WhatsApp es legítimo) | pendiente (S4) |
+
+Si `system_config` no responde, se usan los umbrales de respaldo de
+`FALLBACK_LIMITS` (los mismos defaults): una base caída nunca abre la puerta.
 
 La ráfaga por hora (3) se agregó en el S3-A junto al acumulado diario: sin ella,
 las 10 altas del día podían salir en diez segundos, que es exactamente la forma

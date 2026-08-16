@@ -2,7 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
 import { signUploadRequestSchema, type SignUploadResponse } from '@lomito/shared';
 import { apiError } from '@/lib/api-response';
-import { LIMITS, clientIp, consumeRateLimits, humanizeWait, ipBucket } from '@/lib/rate-limit';
+import {
+  WINDOWS,
+  clientIp,
+  consumeRateLimits,
+  humanizeWait,
+  ipBucket,
+  loadRateLimitConfig,
+} from '@/lib/rate-limit';
 import { PHOTOS_BUCKET, supabaseAdmin } from '@/lib/supabase-admin';
 
 // ============================================================================
@@ -35,8 +42,13 @@ export async function POST(request: NextRequest) {
     return apiError('validation_error', parsed.error.issues.map((i) => i.message).join('; '));
   }
 
+  const limits = await loadRateLimitConfig();
   const limit = await consumeRateLimits([
-    { key: ipBucket('upload', clientIp(request)), ...LIMITS.uploadSignsPerIpHour },
+    {
+      key: ipBucket('upload', clientIp(request)),
+      windowSeconds: WINDOWS.uploadSignsPerIpHour,
+      limit: limits.uploadSignsPerIpHour,
+    },
   ]);
   if (!limit.allowed) {
     return apiError(

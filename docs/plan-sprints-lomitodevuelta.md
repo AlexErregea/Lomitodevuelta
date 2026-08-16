@@ -95,7 +95,7 @@ degrada a email en el acto · Turnstile activo sin reportes de fricción.
 
 | Punto | Dónde vive |
 |---|---|
-| 1. Rate limit por IP | `rate_limit_counters` + `consume_rate_limits()` (migración 12) y `apps/web/src/lib/rate-limit.ts`; se aplica en `POST /api/reports` (3/h, 10/día) y `POST /api/uploads/sign` (15/h). Las cubetas guardan la IP **hasheada con pepper**, nunca en claro |
+| 1. Rate limit por IP | `rate_limit_counters` + `consume_rate_limits()` (migración 12) y `apps/web/src/lib/rate-limit.ts`; se aplica en `POST /api/reports` (3/h, 10/día) y `POST /api/uploads/sign` (15/h). **Los umbrales son columnas de `system_config`**, ajustables con un UPDATE — indispensable para probar en campo sin bloquearse a uno mismo. Las cubetas guardan la IP **hasheada con pepper**, nunca en claro |
 | 2. Circuit breaker global | `system_config.max_reports_per_day` (default 200) evaluado como una cubeta más; al superarlo, 503 `service_unavailable` con copy de "estamos saturados" |
 | 3. Tope por número destino | `system_config.max_messages_per_contact_per_day` (default 3) + RPC `notifications_last_day_for_contact()`, aplicado en los **tres** caminos de envío: `lib/notify.ts`, `_shared/notify.ts` y `lib/notifications.ts` (el enlace de gestión, que no pasaba por `sendNotification`) |
 | 4. Presupuesto síncrono | `isWhatsAppPaused()` cuenta el mes antes de CADA envío y persiste la pausa; `retry-pending` ya no puede colar por la puerta de atrás los mensajes encolados con el presupuesto agotado |

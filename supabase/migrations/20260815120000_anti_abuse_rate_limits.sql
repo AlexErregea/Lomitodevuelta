@@ -122,6 +122,11 @@ grant execute on function public.consume_rate_limits(jsonb) to service_role;
 -- ----------------------------------------------------------------------------
 -- 3) Topes nuevos en system_config
 -- ----------------------------------------------------------------------------
+-- TODOS los umbrales son columnas, no constantes de código: afinarlos el día
+-- del lanzamiento (o durante una prueba en campo, donde el propio fundador se
+-- bloquea a sí mismo tras 3 reportes) tiene que ser un UPDATE, no un
+-- despliegue. Las VENTANAS sí viven en el código: una ventana es parte del
+-- diseño del limitador, no una perilla que se afloje en caliente.
 alter table public.system_config
   -- Circuit breaker global: tope duro de altas por día en toda la plataforma.
   -- Es la última red si el rate limit por IP se evade con IPs rotativas; al
@@ -130,12 +135,30 @@ alter table public.system_config
   add column max_reports_per_day int not null default 200,
   -- Tope de mensajes por número destino y día (anti-bombardeo). Cuenta por
   -- value_hash: da igual desde cuántos reportes se dispare.
-  add column max_messages_per_contact_per_day int not null default 3;
+  add column max_messages_per_contact_per_day int not null default 3,
+  -- Altas por IP: la ráfaga de una hora y el acumulado del día por separado.
+  -- Sin el tope horario, las 10 del día podían salir en diez segundos, que es
+  -- exactamente la forma de un script.
+  add column reports_per_ip_hour int not null default 3,
+  add column reports_per_ip_day int not null default 10,
+  -- Altas por contacto y día (api-contracts.md §6).
+  add column reports_per_contact_day int not null default 5,
+  -- Firmas de subida por IP y hora: holgado porque un Flujo A completo
+  -- consume hasta 5 de golpe.
+  add column upload_signs_per_ip_hour int not null default 15;
 
 comment on column public.system_config.max_reports_per_day is
   'Circuit breaker global: altas máximas por día en toda la plataforma (503 al superarlo).';
 comment on column public.system_config.max_messages_per_contact_per_day is
   'Mensajes máximos por número destino y día, contados por contacts.value_hash.';
+comment on column public.system_config.reports_per_ip_hour is
+  'Rate limit: altas por IP y hora. Súbelo temporalmente para pruebas en campo.';
+comment on column public.system_config.reports_per_ip_day is
+  'Rate limit: altas por IP y día.';
+comment on column public.system_config.reports_per_contact_day is
+  'Rate limit: altas por contacto (value_hash) y día.';
+comment on column public.system_config.upload_signs_per_ip_hour is
+  'Rate limit: firmas de subida a Storage por IP y hora.';
 
 -- ----------------------------------------------------------------------------
 -- 4) notifications_last_day_for_contact() — anti-bombardeo

@@ -54,7 +54,10 @@ implementados en código, **pendientes de desplegar**. Lo que hay que saber:
   deja de reproducir producción y la siguiente migración se escribe a ciegas.
 - **Los topes viven en `system_config`**, nunca en el código (misma regla que
   los pesos del matching): `max_reports_per_day`, `max_messages_per_contact_per_day`,
-  `monthly_message_budget`. Cambiarlos es un UPDATE, no un despliegue.
+  `monthly_message_budget`, `reports_per_ip_hour`, `reports_per_ip_day`,
+  `reports_per_contact_day`, `upload_signs_per_ip_hour`. Cambiarlos es un
+  UPDATE, no un despliegue. Las **ventanas** de tiempo sí son código
+  (`WINDOWS` en `lib/rate-limit.ts`): son diseño, no operación.
 - **Rate limit**: contadores en Postgres (`rate_limit_counters` +
   `consume_rate_limits()`), envueltos en `apps/web/src/lib/rate-limit.ts`. Las
   cubetas guardan hashes, nunca la IP en claro.

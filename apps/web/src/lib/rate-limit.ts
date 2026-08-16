@@ -34,19 +34,67 @@ const HOUR = 3600;
 const DAY = 86400;
 
 /**
- * Límites del MVP. Los valores por IP y por contacto son deliberadamente
- * generosos para el uso real (quien reporta un perro perdido lo hace una vez,
- * quizá dos) y estrechos para un script.
+ * Ventanas de cada cubeta. Viven en el código a propósito: una ventana es
+ * parte del diseño del limitador (la ráfaga y el acumulado miden cosas
+ * distintas), no una perilla que se afloje en caliente. Los umbrales sí se
+ * ajustan sin desplegar — ver `loadRateLimitConfig`.
  */
-export const LIMITS = {
-  /** Altas por IP: la ráfaga y el acumulado del día se acotan por separado. */
-  reportsPerIpHour: { windowSeconds: HOUR, limit: 3 },
-  reportsPerIpDay: { windowSeconds: DAY, limit: 10 },
-  /** Altas por número/correo de contacto (api-contracts.md §6). */
-  reportsPerContactDay: { windowSeconds: DAY, limit: 5 },
-  /** Firmas de subida por IP: más holgado porque un alta consume varias. */
-  uploadSignsPerIpHour: { windowSeconds: HOUR, limit: 15 },
+export const WINDOWS = {
+  reportsPerIpHour: HOUR,
+  reportsPerIpDay: DAY,
+  reportsPerContactDay: DAY,
+  uploadSignsPerIpHour: HOUR,
+  globalReportsDay: DAY,
 } as const;
+
+/**
+ * Umbrales de respaldo, usados solo si `system_config` no responde. Nunca
+ * "sin límite": una base caída no puede convertirse en una puerta abierta.
+ * Son los mismos valores que los DEFAULT de la migración 12.
+ */
+export const FALLBACK_LIMITS = {
+  reportsPerIpHour: 3,
+  reportsPerIpDay: 10,
+  reportsPerContactDay: 5,
+  uploadSignsPerIpHour: 15,
+  maxReportsPerDay: 200,
+} as const;
+
+export type RateLimitConfig = { -readonly [K in keyof typeof FALLBACK_LIMITS]: number };
+
+/**
+ * Lee los umbrales vigentes de `system_config`.
+ *
+ * Están en la tabla y no en el código porque el momento en que hacen falta
+ * ajustar es justo el peor para desplegar: una prueba en campo donde el propio
+ * fundador se bloquea tras 3 altas, o el día del lanzamiento con tráfico
+ * inesperado. Un UPDATE surte efecto en el siguiente request.
+ */
+export async function loadRateLimitConfig(): Promise<RateLimitConfig> {
+  const { data, error } = await supabaseAdmin()
+    .from('system_config')
+    .select(
+      'reports_per_ip_hour, reports_per_ip_day, reports_per_contact_day, upload_signs_per_ip_hour, max_reports_per_day',
+    )
+    .eq('id', true)
+    .maybeSingle();
+
+  if (error || !data) {
+    console.error(JSON.stringify({ msg: 'rate_limit_config_unavailable', error: error?.message }));
+    return { ...FALLBACK_LIMITS };
+  }
+
+  const pick = (value: unknown, fallback: number): number =>
+    typeof value === 'number' && value > 0 ? value : fallback;
+
+  return {
+    reportsPerIpHour: pick(data.reports_per_ip_hour, FALLBACK_LIMITS.reportsPerIpHour),
+    reportsPerIpDay: pick(data.reports_per_ip_day, FALLBACK_LIMITS.reportsPerIpDay),
+    reportsPerContactDay: pick(data.reports_per_contact_day, FALLBACK_LIMITS.reportsPerContactDay),
+    uploadSignsPerIpHour: pick(data.upload_signs_per_ip_hour, FALLBACK_LIMITS.uploadSignsPerIpHour),
+    maxReportsPerDay: pick(data.max_reports_per_day, FALLBACK_LIMITS.maxReportsPerDay),
+  };
+}
 
 /**
  * IP del cliente detrás del proxy de Vercel. `x-forwarded-for` puede traer una

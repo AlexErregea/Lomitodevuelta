@@ -7,7 +7,9 @@ beforeAll(() => {
   process.env.MANAGE_TOKEN_PEPPER = 'pepper-de-prueba';
 });
 
-const { LIMITS, contactBucket, humanizeWait, ipBucket } = await import('@/lib/rate-limit');
+const { FALLBACK_LIMITS, WINDOWS, contactBucket, humanizeWait, ipBucket } = await import(
+  '@/lib/rate-limit'
+);
 
 describe('cubetas de rate limit', () => {
   it('nunca guardan la IP en claro', () => {
@@ -36,17 +38,31 @@ describe('cubetas de rate limit', () => {
   });
 });
 
-describe('límites del MVP', () => {
+// Los umbrales vigentes viven en system_config (se ajustan sin desplegar);
+// estos son los de respaldo, que solo se usan si la base no responde. Deben
+// seguir siendo coherentes entre sí: es la configuración con la que el sistema
+// se defiende justo cuando algo ya salió mal.
+describe('umbrales de respaldo', () => {
+  it('nunca son "sin límite"', () => {
+    for (const [name, value] of Object.entries(FALLBACK_LIMITS)) {
+      expect(value, name).toBeGreaterThan(0);
+    }
+  });
+
   // Un alta legítima consume varias firmas de subida (hasta 5 fotos en Flujo A),
   // así que el límite de firmas tiene que ser holgado frente al de reportes o
   // se bloquearía a sí mismo.
   it('las firmas de subida son más holgadas que las altas', () => {
-    expect(LIMITS.uploadSignsPerIpHour.limit).toBeGreaterThan(LIMITS.reportsPerIpHour.limit);
+    expect(FALLBACK_LIMITS.uploadSignsPerIpHour).toBeGreaterThan(FALLBACK_LIMITS.reportsPerIpHour);
   });
 
   it('el acumulado del día es mayor que la ráfaga de una hora', () => {
-    expect(LIMITS.reportsPerIpDay.limit).toBeGreaterThan(LIMITS.reportsPerIpHour.limit);
-    expect(LIMITS.reportsPerIpDay.windowSeconds).toBe(24 * LIMITS.reportsPerIpHour.windowSeconds);
+    expect(FALLBACK_LIMITS.reportsPerIpDay).toBeGreaterThan(FALLBACK_LIMITS.reportsPerIpHour);
+    expect(WINDOWS.reportsPerIpDay).toBe(24 * WINDOWS.reportsPerIpHour);
+  });
+
+  it('el tope global es muy superior al de una sola IP (si no, una persona apaga el sitio)', () => {
+    expect(FALLBACK_LIMITS.maxReportsPerDay).toBeGreaterThan(10 * FALLBACK_LIMITS.reportsPerIpDay);
   });
 });
 

@@ -16,12 +16,13 @@ import { buildManageUrl, generateManageToken, hashManageToken } from '@/lib/mana
 import { loadActiveMatchingConfig } from '@/lib/matching-config';
 import { enqueueManageLinkNotification } from '@/lib/notifications';
 import {
-  LIMITS,
+  WINDOWS,
   clientIp,
   consumeRateLimits,
   contactBucket,
   humanizeWait,
   ipBucket,
+  loadRateLimitConfig,
 } from '@/lib/rate-limit';
 import { PHOTOS_BUCKET, supabaseAdmin } from '@/lib/supabase-admin';
 import { verifyTurnstile } from '@/lib/turnstile';
@@ -45,10 +46,6 @@ const REPORT_TTL_DAYS = 60;
 
 /** Cubeta del circuit breaker: una sola para toda la plataforma. */
 const GLOBAL_REPORTS_BUCKET = 'global:reports:day';
-const ONE_DAY_SECONDS = 86400;
-
-/** Si system_config no responde, el tope duro no desaparece: se asume este. */
-const FALLBACK_MAX_REPORTS_PER_DAY = 200;
 
 export async function POST(request: NextRequest) {
   let body: unknown;
@@ -80,19 +77,30 @@ export async function POST(request: NextRequest) {
   const ip = clientIp(request);
   const contactValueHash = hashContactValue(input.contact.channel, input.contact.value);
 
-  const { data: limitsConfig } = await db
-    .from('system_config')
-    .select('max_reports_per_day')
-    .eq('id', true)
-    .maybeSingle();
-  const maxReportsPerDay =
-    (limitsConfig?.max_reports_per_day as number | undefined) ?? FALLBACK_MAX_REPORTS_PER_DAY;
-
+  // Los umbrales viven en system_config: ajustarlos durante una prueba en campo
+  // o el día del lanzamiento es un UPDATE, no un despliegue.
+  const limits = await loadRateLimitConfig();
   const limit = await consumeRateLimits([
-    { key: ipBucket('report-hour', ip), ...LIMITS.reportsPerIpHour },
-    { key: ipBucket('report-day', ip), ...LIMITS.reportsPerIpDay },
-    { key: contactBucket('report-day', contactValueHash), ...LIMITS.reportsPerContactDay },
-    { key: GLOBAL_REPORTS_BUCKET, windowSeconds: ONE_DAY_SECONDS, limit: maxReportsPerDay },
+    {
+      key: ipBucket('report-hour', ip),
+      windowSeconds: WINDOWS.reportsPerIpHour,
+      limit: limits.reportsPerIpHour,
+    },
+    {
+      key: ipBucket('report-day', ip),
+      windowSeconds: WINDOWS.reportsPerIpDay,
+      limit: limits.reportsPerIpDay,
+    },
+    {
+      key: contactBucket('report-day', contactValueHash),
+      windowSeconds: WINDOWS.reportsPerContactDay,
+      limit: limits.reportsPerContactDay,
+    },
+    {
+      key: GLOBAL_REPORTS_BUCKET,
+      windowSeconds: WINDOWS.globalReportsDay,
+      limit: limits.maxReportsPerDay,
+    },
   ]);
   if (!limit.allowed) {
     const isGlobal = limit.blockedKey === GLOBAL_REPORTS_BUCKET;
