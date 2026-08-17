@@ -189,12 +189,14 @@ Decisiones tomadas al implementar (no había que consultarlas, quedan asentadas)
 
 ### S3-D · Caso completo real y lanzamiento
 
-1. **E2E en producción con dos celulares reales**: A reporta perdido → B
-   reporta encontrado (mismo perro) → `on-report-created` genera match →
-   ambos reciben WhatsApp → prueba de propiedad del lado dueño → doble
-   aceptación → `contact_revealed` por servidor → `reunion_confirmed`.
-   Verificar en `events` los eventos 1–10 del embudo (observability.md §2)
-   y la idempotencia (repetir el flujo no re-notifica al mismo par).
+1. ~~**E2E en producción con dos celulares reales**~~ ✅ **HECHO (2026-08-17)**:
+   corrió completo con números reales — match `31467cb9` (score 0.7682),
+   `match_notified` → doble `match_accepted_side` con prueba de propiedad →
+   `contact_revealed` entregado a ambos → **`reunion_confirmed` a las 04:42**.
+   El embudo quedó en `events` (detalle en `CLAUDE.md`). Pendiente de esta
+   viñeta: verificar explícitamente la **idempotencia** (que repetir el flujo
+   no re-notifique al mismo par) — el par único está en el código y en la
+   migración 9, pero no se ha ejercitado a propósito en producción.
 2. **Probar el kill-switch**: fijar `monthly_message_budget` bajo, agotar,
    confirmar pausa + fallback a email + aviso al fundador; restaurar.
 3. **Fricción anti-fraude mínima en la revelación** (recomendado tras la

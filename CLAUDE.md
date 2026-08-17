@@ -45,6 +45,36 @@ tú lo técnico dentro de las decisiones ya registradas.
 > aterriza `roadmap-tecnico.md` sobre el estado real desplegado. El sprint en
 > curso es el **Sprint 3-cierre** (blindar y lanzar el MVP).
 
+**EL CICLO COMPLETO FUNCIONÓ EN PRODUCCIÓN** (2026-08-17): la promesa entera del
+producto, de punta a punta, con dos celulares y números reales. El embudo tal
+como quedó en `events` (match `31467cb9`, score 0.7682):
+
+```
+04:34  photo_uploaded (5)  → report_created (lost, "Liah")
+04:37  photo_uploaded (1)  → extraction_done → report_created (found)
+04:37  candidates_shown 0.7682 → match_suggested → match_notified (whatsapp)
+04:40  extraction_done (reintento, attempts 2, throttled false)
+04:41  match_accepted_side lost → found → contact_revealed (ambos entregados)
+04:42  reunion_confirmed
+```
+
+**`reunion_confirmed` es la North Star y ya tiene su primer registro real.** El
+motor proactivo encontró el par solo, avisó a las dos partes, cobró la prueba de
+propiedad, abrió el puente de contacto y cerró el caso. El match guarda además
+sus dos tokens por lado, así que el enlace de coincidencia también quedó
+verificado con datos reales.
+
+**Lo que NO cierra todavía el Sprint 3-cierre** (no confundir el ciclo técnico
+con el sprint): falta **probar el kill-switch de presupuesto** agotándolo de
+verdad, y falta **lanzar al público en la zona piloto**. Mientras eso no pase, el
+sprint sigue abierto por más que la maquinaria funcione.
+
+Un dato de esa corrida que corrige una creencia: los embeddings del reporte de 5
+fotos fallaron por **timeout de 18 s**, no por 429 — y fue con el pipeline en
+paralelo, que se promovió a serie después (21:11). En serie la foto **principal**
+ya no compite por el presupuesto de tiempo con las otras cuatro: se lleva el
+primer intento, que es lo que usan la extracción y la búsqueda inmediata.
+
 **MVP VERIFICADO EN PRODUCCIÓN** (2026-08-16): un reporte real recorrió la
 cadena completa — foto subida al bucket privado → embedding en Replicate →
 atributos con Claude → reporte creado → plantilla `manage_link` enviada →
