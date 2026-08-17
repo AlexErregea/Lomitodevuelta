@@ -97,6 +97,16 @@ aplicadas con el historial reconciliado a las versiones del repo.
 - **Vercel no promueve solo.** Los push a `master` crean *previews*; producción
   solo avanza al promover a mano. Si algo "no se aplicó", revisar primero
   Settings → Git → Production Branch antes de depurar código.
+- **Promover SOLO deployments cuyo `githubCommitRef` sea `master`.** Un preview
+  de rama es una foto completa del sitio en ese commit, no un parche: promoverlo
+  **revierte en silencio todo lo que esa rama no tenga**. Ya pasó dos veces con
+  el mismo arreglo — el pipeline en serie de Replicate vivía solo en `master` y
+  dos promotes de rama lo quitaron de producción sin que nada fallara. Antes de
+  promover: que el commit coincida con la punta de `master`.
+- **`pnpm build` local exige `SUPABASE_SERVICE_ROLE_KEY`** desde que la landing
+  lee reportes reales: `/` se prerenderiza y consulta la base. Sin la llave, el
+  build compila y falla en el prerender de `/`. No es un bug — el error dice qué
+  falta. `typecheck`, `test` y `lint` no la necesitan.
 - **Puede haber DOS cuentas de WhatsApp Business** (la del número de prueba y la
   del real). El usuario del sistema necesita asignada la del número real, y los
   permisos granulares **se congelan al emitir el token**: asignar un activo
@@ -115,6 +125,30 @@ aplicadas con el historial reconciliado a las versiones del repo.
   modificados** y `git status` deja de servir para distinguir cambios reales.
   Provocó una falsa alarma de migración editada. Ante un diff sospechoso:
   `git diff --ignore-cr-at-eol --numstat` antes de dar la voz.
+
+**El aviso de coincidencia lleva a donde SÍ se puede decidir** (2026-08-16,
+migración 13): antes mandaba a la ficha pública de la contraparte. Esa página es
+anónima por diseño (los ciudadanos no tienen cuenta, ADR-0006) y es la misma que
+ve un desconocido cuando el enlace se reenvía a un grupo: **no puede saber quién
+la abre, así que no puede pedirle nada**. El cuerpo aprobado en Meta ya apuntaba
+a `/gestionar`; era el código el que mandaba otra cosa. Reglas que salen de ahí:
+
+- **`/r/:id/gestionar` tiene DOS niveles de permiso.** Con `?t=` (token de
+  gestión) es el panel completo. Con `?m={matchId}&t=` es solo esa coincidencia
+  y sus botones, **sin acceso ARCO**: un enlace que viaja por WhatsApp se
+  reenvía con facilidad y no debe poder borrar un reporte.
+- **Un token por LADO del match** (`lost_access_token_hash` /
+  `found_access_token_hash`). Con uno compartido, el enlace de quien encontró al
+  perro autenticaría como el dueño y podría aportar la prueba de propiedad en su
+  nombre. El lado se deduce de cuál hash coincidió, no de lo que manda el
+  cliente.
+- **No se reusa ni se rota el token de gestión** para esto: solo se guarda su
+  hash, así que mandarlo obligaría a emitir uno nuevo e invalidar el que la
+  persona guardó — en cada notificación.
+- El hash se guarda **solo si el mensaje salió** (mismo guardarraíl que
+  `lifecycle`): un envío fallido no puede dejar un token vivo.
+- La URL mantiene la forma `/gestionar` a propósito, para encajar con la
+  plantilla ya aprobada y no volver a pasar por Meta.
 
 **Nombre del perro** (2026-08-16, migración 14): `dogs.pet_name`, nullable para
 siempre. **Solo Flujo A** — quien encuentra un perro no sabe cómo se llama, y el
@@ -155,20 +189,22 @@ logo.
    calibrado y las coincidencias que muestre hoy no son confiables.** Es el
    corazón de la tesis "motor de reunificación, no directorio". Requiere 15-25
    perros con 3-5 fotos cada uno (`docs/benchmark-embeddings.md`).
-2. **`matching_params.embedding_model_version` dice `siglip-base-768/v1`** pero
-   el modelo real es CLIP ViT-L/14. Corregir la etiqueta en la fila activa **y**
-   en `dog_photos` a la vez: aquí no aplica "fila nueva", porque el modelo nunca
-   cambió — crear una partiría el inventario en dos mitades que jamás se
-   comparan.
-3. **Verificación de negocio en Meta** (RFC + Constancia de Situación Fiscal).
+2. **Verificación de negocio en Meta** (RFC + Constancia de Situación Fiscal).
    Sin ella, límites de mensajería. Trámite de días, no técnico.
-4. **El buzón `privacidad@lomitodevuelta.com` no existe.** El aviso lo declara
+3. **El buzón `privacidad@lomitodevuelta.com` no existe.** El aviso lo declara
    como canal para derechos ARCO; sin Email Routing en Cloudflare, ese derecho
    es ficticio.
-5. El rediseño del estado de espera de la IA.
+4. El rediseño del estado de espera de la IA.
+
+Cerrado el 2026-08-17: la etiqueta del modelo de embeddings ya está consistente
+(`matching_params` y las fotos con embedding dicen todas `clip-vit-l14-768/v1`);
+no hay inventario partido.
 
 **Paquete anti-abuso S3-A + consentimiento tácito S3-C** (2026-08-15):
-implementados en código, **pendientes de desplegar**. Lo que hay que saber:
+**desplegados y verificados en producción el 2026-08-16**. Los límites corren
+con sus valores reales (3 altas/hora y 10/día por IP, 5/día por contacto, 15
+firmas/hora, 3 mensajes/día por número destino) y `founder_whatsapp` ya tiene
+destinatario para el aviso de presupuesto. Lo que hay que saber:
 
 - **Toda la DDL entra por `supabase/migrations/`, jamás por el dashboard.**
   Producción tenía una migración a mano que el repo no
