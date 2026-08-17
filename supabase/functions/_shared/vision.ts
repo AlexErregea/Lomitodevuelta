@@ -86,6 +86,51 @@ export function validateExtraction(raw: unknown): ExtractionResult {
   return r as unknown as ExtractionResult;
 }
 
+/**
+ * 429 de Replicate: no es una inferencia fallida, es una espera con duración
+ * conocida. Espejo de apps/web/src/lib/providers/replicate-embedding.ts.
+ * `retry-pending` la trata distinto de un fallo real: la respeta y NO gasta un
+ * intento del reporte (si no, un límite de tasa acabaría matando el reporte,
+ * justo lo contrario de la regla de oro del ADR-0003).
+ */
+export class ReplicateThrottleError extends Error {
+  readonly retryAfterSeconds: number;
+
+  constructor(retryAfterSeconds: number, detail: string) {
+    super(`Replicate throttled (reintentar en ~${retryAfterSeconds}s): ${detail}`);
+    this.name = 'ReplicateThrottleError';
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+export function isThrottleError(error: unknown): error is ReplicateThrottleError {
+  return error instanceof Error && error.name === 'ReplicateThrottleError';
+}
+
+const MIN_RETRY_AFTER_SECONDS = 1;
+const MAX_RETRY_AFTER_SECONDS = 30;
+const DEFAULT_RETRY_AFTER_SECONDS = 10;
+
+/** Segundos que pide Replicate: van en el JSON (`retry_after`) o en la cabecera. */
+export function parseRetryAfterSeconds(body: string, header: string | null): number {
+  const clamp = (value: number): number =>
+    Math.min(MAX_RETRY_AFTER_SECONDS, Math.max(MIN_RETRY_AFTER_SECONDS, Math.ceil(value)));
+
+  try {
+    const parsed = JSON.parse(body) as { retry_after?: unknown };
+    if (typeof parsed.retry_after === 'number' && Number.isFinite(parsed.retry_after)) {
+      return clamp(parsed.retry_after);
+    }
+  } catch {
+    // Cuerpo no-JSON: se sigue con la cabecera.
+  }
+
+  const fromHeader = Number(header);
+  if (header && Number.isFinite(fromHeader)) return clamp(fromHeader);
+
+  return DEFAULT_RETRY_AFTER_SECONDS;
+}
+
 export async function embedImage(imageUrl: string): Promise<number[]> {
   const replicateVersion = optionalEnv('REPLICATE_EMBEDDING_VERSION') ?? DEFAULT_REPLICATE_VERSION;
   const response = await fetch('https://api.replicate.com/v1/predictions', {
@@ -102,7 +147,14 @@ export async function embedImage(imageUrl: string): Promise<number[]> {
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   if (!response.ok) {
-    throw new Error(`Replicate respondió ${response.status}: ${await response.text()}`);
+    const body = await response.text();
+    if (response.status === 429) {
+      throw new ReplicateThrottleError(
+        parseRetryAfterSeconds(body, response.headers.get('retry-after')),
+        body,
+      );
+    }
+    throw new Error(`Replicate respondió ${response.status}: ${body}`);
   }
   const prediction = (await response.json()) as { status: string; output: unknown; error: string | null };
   if (prediction.status !== 'succeeded') {
