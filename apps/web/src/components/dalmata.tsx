@@ -46,30 +46,44 @@ export function DalmataFrente({ size = 120 }: { size?: number }) {
   );
 }
 
-/** Tres cuartos, mirando a la izquierda — la foto que toma quien lo encuentra. */
+/**
+ * Cabeza y pecho, ligeramente inclinada — la foto que toma quien lo encuentra.
+ *
+ * Se descartaron dos alternativas y vale la pena registrar por qué. El perfil
+ * lateral era el ángulo más limpio, pero casi ninguna mancha coincidía con la
+ * vista de frente y se leía como OTRO perro: rompía justo el mensaje. Girar el
+ * frente sin más decía "misma foto inclinada", no "otra persona la tomó".
+ *
+ * Esta cambia el encuadre —muestra el pecho— conservando la cara reconocible,
+ * así que suma referencias nuevas sin perder las viejas. La inclinación de unos
+ * grados es deliberada: una segunda foto de la calle nunca sale centrada.
+ */
 export function DalmataPerfil({ size = 120 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 120 120" aria-hidden="true">
-      {/* Oreja del lado lejano, apenas asomada */}
-      <path d="M84 46 Q98 50 100 66 Q101 78 92 82 Q85 84 84 72 Z" fill={CREMA} opacity=".75" />
+      <g transform="rotate(-9 60 62)">
+        {/* Pecho: las manchas de aquí son las referencias nuevas */}
+        <path d="M30 88 Q26 104 30 120 L92 120 Q96 102 90 88 Q76 80 60 80 Q42 80 30 88 Z" fill={CREMA} />
+        <ellipse cx="44" cy="103" rx="6" ry="5" fill={TINTA} opacity=".85" />
+        <ellipse cx="76" cy="110" rx="5" ry="4.4" fill={TINTA} opacity=".8" />
 
-      {/* Cabeza girada: misma proporción, desplazada y con el hocico saliendo */}
-      <path d="M38 50 Q36 88 62 95 Q88 88 88 50 Q88 36 62 36 Q38 36 38 50 Z" fill={CREMA} />
+        {/* Orejas */}
+        <path d="M36 44 Q22 48 20 62 Q19 74 28 78 Q35 80 36 69 Q35 56 36 44 Z" fill={CREMA} />
+        <path d="M84 44 Q98 48 100 62 Q101 74 92 78 Q85 80 84 69 Q85 56 84 44 Z" fill={CREMA} />
+        <ellipse cx="27" cy="62" rx="4.6" ry="6" fill={TINTA} opacity=".9" />
 
-      {/* Oreja cercana, más grande por la perspectiva */}
-      <path d="M40 48 Q22 54 20 72 Q19 86 30 89 Q39 90 40 77 Q39 62 40 48 Z" fill={CREMA} />
-      <ellipse cx="29" cy="72" rx="5.5" ry="7" fill={TINTA} opacity=".9" />
+        {/* Cabeza: misma silueta del logo, un poco más chica por el encuadre */}
+        <path d="M36 46 Q36 80 60 87 Q84 80 84 46 Q84 34 60 34 Q36 34 36 46 Z" fill={CREMA} />
 
-      {/* Las MISMAS manchas, corridas por el giro: es el mismo perro */}
-      <ellipse cx="52" cy="47" rx="6" ry="5" fill={TINTA} opacity=".9" />
-      <ellipse cx="79" cy="52" rx="4.5" ry="4" fill={TINTA} opacity=".85" />
-      <ellipse cx="66" cy="40" rx="3.2" ry="2.8" fill={TINTA} opacity=".75" />
+        {/* Las MISMAS manchas de la cara: es lo que prueba que es el mismo perro */}
+        <ellipse cx="47" cy="44" rx="6" ry="5" fill={TINTA} opacity=".9" />
+        <ellipse cx="74" cy="47" rx="4.6" ry="4" fill={TINTA} opacity=".9" />
 
-      {/* Hocico proyectado hacia la izquierda */}
-      <path d="M38 66 Q26 68 24 76 Q24 84 34 84 Q46 83 50 76 Q50 68 38 66 Z" fill="#fff" />
-      <ellipse cx="27" cy="74" rx="4.2" ry="3.4" fill={TINTA} />
-      <circle cx="52" cy="58" r="3.4" fill={TINTA} />
-      <circle cx="76" cy="60" r="3" fill={TINTA} opacity=".85" />
+        <path d="M50 66 Q60 73 70 66 Q70 78 60 80 Q50 78 50 66 Z" fill="#fff" />
+        <circle cx="50" cy="54" r="3.1" fill={TINTA} />
+        <circle cx="71" cy="54" r="3.1" fill={TINTA} />
+        <ellipse cx="60" cy="68" rx="4.4" ry="3.5" fill={TINTA} />
+      </g>
     </svg>
   );
 }
