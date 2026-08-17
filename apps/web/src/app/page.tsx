@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AMBAR, AMBAR_CLARO, Brand, Logo } from '@/components/brand';
+import { DalmataFrente, DalmataPerfil } from '@/components/dalmata';
 import { content } from '@/content/es-MX';
 
 // ============================================================================
@@ -95,8 +96,14 @@ function Hero() {
           <div className="rounded-[18px] bg-tinta p-[22px]">
             <div className="mb-4 text-xs font-bold tracking-[.04em] text-ambar-claro">{t.hero.moduleTag}</div>
             <div className="flex items-center gap-[14px]">
+              {/* La ilustración cuenta la tesis sin texto: es el MISMO perro en
+                  los dos cuadros, visto por dos personas distintas. Las manchas
+                  son los puntos de referencia que dejan verlo de un vistazo. */}
               <div className="relative aspect-square flex-1 overflow-hidden rounded-[12px] bg-[#4a3a2b]">
-                <div className="absolute inset-0 flex items-center justify-center text-[11px] text-[#9a876f]">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <DalmataFrente size={104} />
+                </div>
+                <div className="absolute bottom-[6px] left-0 right-0 text-center text-[11px] text-[#c2ac8e]">
                   {t.hero.moduleYours}
                 </div>
                 <div className="absolute bottom-[14%] left-[20%] right-[20%] top-[16%] rounded-[6px] border-[1.5px] border-ambar-claro" />
@@ -111,7 +118,10 @@ function Hero() {
                 </svg>
               </div>
               <div className="relative aspect-square flex-1 overflow-hidden rounded-[12px] bg-[#4a3a2b]">
-                <div className="absolute inset-0 flex items-center justify-center text-[11px] text-[#9a876f]">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <DalmataPerfil size={104} />
+                </div>
+                <div className="absolute bottom-[6px] left-0 right-0 text-center text-[11px] text-[#c2ac8e]">
                   {t.hero.moduleSeen}
                 </div>
                 <div className="absolute bottom-[14%] left-[20%] right-[20%] top-[16%] rounded-[6px] border-[1.5px] border-verde" />
