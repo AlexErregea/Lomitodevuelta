@@ -2,13 +2,22 @@ import Link from 'next/link';
 import { AMBAR, AMBAR_CLARO, Brand, Logo } from '@/components/brand';
 import { DalmataFrente, DalmataPerfil } from '@/components/dalmata';
 import { content } from '@/content/es-MX';
+import { loadRecentPublicReports } from '@/lib/ficha';
 
 // ============================================================================
-// Landing (puerta de entrada, ruta /). Server Component estático: rápido y
-// bueno para SEO/preview. Es la reconstrucción fiel en JSX+Tailwind del diseño
-// del fundador (Landing/index.html); el copy vive en content.landing (regla
-// i18n). Los CTAs de reporte enrutan a los dos flujos: /perdi y /encontre.
+// Landing (puerta de entrada, ruta /). Server Component: rápido y bueno para
+// SEO/preview. Es la reconstrucción fiel en JSX+Tailwind del diseño del
+// fundador (Landing/index.html); el copy vive en content.landing (regla i18n).
+// Los CTAs de reporte enrutan a los dos flujos: /perdi y /encontre.
+//
+// La sección "cerca de ti" lee reportes reales, así que la página se regenera
+// cada 5 minutos en vez de ser estática para siempre. Se eligió ISR y no
+// `force-dynamic` porque la landing es la puerta de entrada y la página que
+// más se comparte: no debe pagar una consulta a la base por cada visita, y
+// cinco minutos de desfase en un listado de perros no le cuesta nada a nadie.
 // ============================================================================
+
+export const revalidate = 300;
 
 const t = content.landing;
 
@@ -184,44 +193,66 @@ function ValueProps() {
   );
 }
 
-function CercaDeTi() {
+async function CercaDeTi() {
+  // Reportes REALES. Antes eran tres perros inventados con nombre, alcaldía y
+  // hasta "2 posibles coincidencias" — indistinguibles de un reporte de verdad
+  // en un producto cuyo valor entero depende de que la gente crea lo que ve.
+  const reportes = await loadRecentPublicReports(3);
+
   return (
     <div id="cerca" className="bg-crema">
       <div className="mx-auto max-w-[1120px] px-6 py-[clamp(36px,5vw,60px)]">
-        <h2 className="mb-[6px] font-display text-[clamp(22px,3vw,30px)] font-bold">{t.cerca.heading}</h2>
-        <p className="mb-6 max-w-[640px] text-[15px] text-[#8a7962]">{t.cerca.body}</p>
+        <h2 className="mb-[6px] font-display text-[clamp(22px,3vw,30px)] font-bold">
+          {reportes.length ? t.cerca.heading : t.cerca.vacioHeading}
+        </h2>
+        <p className="mb-6 max-w-[640px] text-[15px] text-[#8a7962]">
+          {reportes.length ? t.cerca.body : t.cerca.vacioBody}
+        </p>
+        {reportes.length > 0 && (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
-          {t.cerca.cards.map((card) => (
-            <div
-              key={card.name}
-              className="flex items-center gap-[14px] rounded-[14px] border border-borde bg-crema-card p-[14px]"
+          {reportes.map((reporte) => (
+            <Link
+              key={reporte.id}
+              href={`/r/${reporte.id}`}
+              className="flex items-center gap-[14px] rounded-[14px] border border-borde bg-crema-card p-[14px] transition-colors hover:border-ambar"
             >
-              <div className="flex h-[60px] w-[60px] flex-shrink-0 items-center justify-center rounded-[10px] bg-borde text-[10px] text-[#a3906f]">
-                foto
-              </div>
+              {reporte.photoUrl ? (
+                // img nativo a propósito: URL firmada efímera, next/image no aplica.
+                <img
+                  src={reporte.photoUrl}
+                  alt=""
+                  className="h-[60px] w-[60px] flex-shrink-0 rounded-[10px] object-cover"
+                />
+              ) : (
+                // El embedding puede tardar; la ficha existe aunque la foto aún no
+                // se firme. Mejor un hueco honesto que esconder el reporte.
+                <div className="flex h-[60px] w-[60px] flex-shrink-0 items-center justify-center rounded-[10px] bg-borde px-1 text-center text-[9px] leading-tight text-[#8a7962]">
+                  {t.cerca.sinFoto}
+                </div>
+              )}
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={`rounded-[4px] px-2 py-[2px] text-[10px] font-extrabold text-white ${
-                      card.type === 'lost' ? 'bg-perdido' : 'bg-encontrado'
+                      reporte.reportType === 'lost' ? 'bg-perdido' : 'bg-encontrado'
                     }`}
                   >
-                    {card.type === 'lost' ? t.badges.lost : t.badges.found}
+                    {reporte.reportType === 'lost' ? t.badges.lost : t.badges.found}
                   </span>
-                  <span className="font-display text-sm font-bold">{card.name}</span>
+                  {reporte.addressText && (
+                    <span className="truncate font-display text-sm font-bold">{reporte.addressText}</span>
+                  )}
                 </div>
-                <div className="mt-[5px] text-xs text-[#8a7962]">{card.meta}</div>
-                <div
-                  className={`mt-[2px] text-xs ${
-                    card.statusHighlight ? 'font-semibold text-encontrado' : 'text-[#8a7962]'
-                  }`}
-                >
-                  {card.status}
+                <div className="mt-[5px] text-xs text-[#8a7962]">
+                  {reporte.rasgos ? `${reporte.rasgos} · ` : ''}
+                  {reporte.cuando}
                 </div>
+                <div className="mt-[2px] text-xs font-semibold text-ambar-texto">{t.cerca.verFicha}</div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
+        )}
       </div>
     </div>
   );

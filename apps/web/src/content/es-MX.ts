@@ -51,29 +51,14 @@ export const content = {
     cerca: {
       heading: 'Pasando cerca de ti ahora',
       body: 'No necesitas una ciudad llena de gente usándolo: cada foto que se sube ya sirve para encontrar a alguien.',
-      cards: [
-        {
-          type: 'lost' as const,
-          name: 'Toby',
-          meta: 'Álvaro Obregón · hace 3 h · mestizo café',
-          status: '2 posibles coincidencias',
-          statusHighlight: true,
-        },
-        {
-          type: 'found' as const,
-          name: 'Perrito',
-          meta: 'Iztapalapa · hace 1 día · negro con blanco',
-          status: 'Busca a su familia',
-          statusHighlight: false,
-        },
-        {
-          type: 'lost' as const,
-          name: 'Canela',
-          meta: 'Tlalpan · hace 6 h · chica, collar rojo',
-          status: 'Buscando en tu zona…',
-          statusHighlight: false,
-        },
-      ],
+      // Estado vacío. Es lo que se ve el día del lanzamiento y cada vez que la
+      // zona está tranquila, así que no es un caso borde: da la buena noticia
+      // primero y deja la puerta abierta sin fingir actividad que no existe.
+      vacioHeading: 'Por ahora, ningún perro que buscar',
+      vacioBody:
+        'No hay reportes activos en esta zona. Ojalá siga así — y si se te perdió el tuyo o encontraste uno, publícalo y empezamos a buscar de inmediato.',
+      verFicha: 'Ver ficha',
+      sinFoto: 'Foto en proceso',
     },
     como: {
       heading: 'Cómo funciona',
