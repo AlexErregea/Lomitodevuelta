@@ -29,12 +29,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!report) return { title: t.notFoundTitle };
 
   const badge = report.reportType === 'lost' ? t.lostBadge : t.foundBadge;
-  const heading = report.reportType === 'lost' ? t.lostHeading : t.foundHeading;
+  // Con nombre, la vista previa del enlace dice "Se busca a Toby" — que es lo
+  // que la gente ve en WhatsApp ANTES de decidir si abre o reenvía.
+  const heading =
+    report.reportType === 'lost'
+      ? report.petName
+        ? t.lostHeadingNamed(report.petName)
+        : t.lostHeading
+      : t.foundHeading;
   return {
     title: `${badge} · LomitoDeVuelta`,
     description: `${heading}. ${report.addressText ? `${t.nearLabel} ${report.addressText}. ` : ''}${t.cta}`,
     openGraph: {
-      title: `${badge} 🐕 ${t.cta}`,
+      title: report.petName ? `${heading} 🐕` : `${badge} 🐕 ${t.cta}`,
       description: heading,
       url: `${baseUrl}/r/${report.id}`,
       // Buster de versión: única forma fiable de invalidar el caché de WhatsApp.
@@ -88,7 +95,7 @@ export default async function FichaPage({ params }: PageProps) {
         {badge}
       </span>
       <h1 className="mt-3 font-display text-[clamp(26px,6vw,34px)] font-bold leading-[1.15] tracking-[-.02em]">
-        {isLost ? t.lostHeading : t.foundHeading}
+        {isLost ? (report.petName ? t.lostHeadingNamed(report.petName) : t.lostHeading) : t.foundHeading}
       </h1>
 
       {/* Foto principal grande; el resto como tira de miniaturas. Con hasta 5
@@ -172,7 +179,7 @@ export default async function FichaPage({ params }: PageProps) {
         <h2 className="font-display text-lg font-bold">{t.helpHeading}</h2>
         <p className="mt-1 text-[14px] leading-[1.55] text-[#5b4b3a]">{t.helpBody}</p>
         <div className="mt-4">
-          <ShareButton badge={badge} shareUrl={shareUrl} />
+          <ShareButton badge={badge} shareUrl={shareUrl} petName={report.petName} />
         </div>
         <Link
           href={isLost ? '/encontre' : '/perdi'}

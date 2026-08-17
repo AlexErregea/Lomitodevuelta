@@ -20,11 +20,14 @@ export function EditFichaForm({
   manageToken,
   initialAttributes,
   initialMarks,
+  initialPetName = null,
 }: {
   reportId: string;
   manageToken: string;
   initialAttributes: DogAttributes;
   initialMarks: string | null;
+  /** Solo Flujo A; en el B no se pide y el campo no se muestra. */
+  initialPetName?: string | null;
 }) {
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
@@ -54,9 +57,12 @@ export function EditFichaForm({
     }
 
     const marks = String(formData.get('distinctiveMarks') ?? '').trim();
+    const petName = String(formData.get('petName') ?? '').trim();
     const request: UpdateReportRequest = {
       attributes,
       distinctiveMarks: marks || null,
+      // Vacío = quitarlo. Alguien puede arrepentirse de haberlo publicado.
+      ...(initialPetName !== null || petName ? { petName: petName || null } : {}),
     };
 
     const response = await fetch(`/api/reports/${reportId}`, {
@@ -69,6 +75,18 @@ export function EditFichaForm({
 
   return (
     <form action={handleSubmit}>
+      {initialPetName !== null && (
+        <Field label={t.petName} htmlFor="petName">
+          <input
+            id="petName"
+            name="petName"
+            maxLength={40}
+            defaultValue={initialPetName}
+            className={controlClass}
+          />
+        </Field>
+      )}
+
       <Field label={t.breedMix} htmlFor="breedMix">
         <input
           id="breedMix"

@@ -12,8 +12,20 @@ import { captureEvent } from '@/lib/client/analytics';
 // La persona debe saber en qué app va a acabar antes de tocar.
 // ============================================================================
 
-export function ShareButton({ badge, shareUrl }: { badge: string; shareUrl: string }) {
-  const text = `${content.ficha.shareText(badge)} ${shareUrl}`;
+export function ShareButton({
+  badge,
+  shareUrl,
+  petName,
+}: {
+  badge: string;
+  shareUrl: string;
+  petName?: string | null;
+}) {
+  // "Ayúdanos a encontrar a Toby" se reenvía; "PERDIDO 🐕" se ignora. Este texto
+  // ES el mecanismo de distribución del producto, no una etiqueta.
+  const text = petName
+    ? `${content.ficha.shareTextNamed(petName)} ${shareUrl}`
+    : `${content.ficha.shareText(badge)} ${shareUrl}`;
   return (
     <a
       href={`https://wa.me/?text=${encodeURIComponent(text)}`}

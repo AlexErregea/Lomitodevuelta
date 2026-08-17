@@ -195,6 +195,12 @@ export const content = {
   },
   flowA: {
     heading: 'Perdí a mi perro',
+    // Va PRIMERO a propósito. Preguntar el nombre antes que nada cambia el tono
+    // del formulario: deja de sentirse como levantar un acta y empieza a
+    // sentirse como contarle a alguien sobre tu perro.
+    nameLabel: '¿Cómo se llama?',
+    namePlaceholder: 'Ej. Toby',
+    nameHint: 'Opcional, pero ayuda muchísimo: la gente comparte mucho más un nombre que "un perro perdido".',
     promise: 'Sube sus fotos: la IA arma su ficha y busca de inmediato entre los perros que ya reportaron encontrados.',
     homeLink: '¿Perdiste a tu perro? Repórtalo aquí',
     photosLabel: 'Fotos de tu perro (1 a 5; la primera es la principal)',
@@ -210,6 +216,7 @@ export const content = {
     editBody: 'Corrige lo que no coincida: tu corrección siempre gana.',
   },
   editor: {
+    petName: 'Nombre',
     breedMix: 'Raza(s), separadas por coma',
     colors: 'Colores, separados por coma',
     size: 'Tamaño',
@@ -304,6 +311,8 @@ export const content = {
     lostBadge: 'PERDIDO',
     foundBadge: 'ENCONTRADO',
     lostHeading: 'Se busca a este perro',
+    lostHeadingNamed: (nombre: string) => `Se busca a ${nombre}`,
+    shareTextNamed: (nombre: string) => `Ayúdanos a encontrar a ${nombre}:`,
     foundHeading: 'Este perro fue encontrado',
     eventDateLost: 'Se perdió el',
     eventDateFound: 'Encontrado el',

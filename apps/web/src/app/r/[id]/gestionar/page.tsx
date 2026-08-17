@@ -84,7 +84,7 @@ export default async function GestionarPage({
 
   const { data: dog } = await supabaseAdmin()
     .from('dogs')
-    .select('id, status, expires_at, attributes, distinctive_marks, manage_token_hash, deleted_at')
+    .select('id, status, expires_at, attributes, distinctive_marks, pet_name, report_type, manage_token_hash, deleted_at')
     .eq('id', id)
     .single();
   if (
@@ -119,6 +119,8 @@ export default async function GestionarPage({
         expiresAt={(dog.expires_at as string | null) ?? null}
         attributes={parseAttributes(dog.attributes)}
         distinctiveMarks={(dog.distinctive_marks as string | null) ?? null}
+        // Solo el Flujo A tiene nombre; en el B se pasa null y el editor lo oculta.
+        petName={dog.report_type === 'lost' ? ((dog.pet_name as string | null) ?? '') : null}
       />
     </FlowShell>
   );

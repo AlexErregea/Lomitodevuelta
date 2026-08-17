@@ -183,6 +183,8 @@ export async function POST(request: NextRequest) {
       report_type: input.reportType,
       attributes,
       distinctive_marks: distinctiveMarks,
+      // Solo llega del Flujo A; en el B queda null y la ficha usa su titular genérico.
+      pet_name: input.petName ?? null,
       marks_tags: marksTags,
       geo_point: toWkt(input.geo),
       address_text: input.addressText ?? null,
@@ -295,6 +297,7 @@ export async function POST(request: NextRequest) {
 
   const response: CreateReportResponse = {
     reportId: dog.id,
+    petName: input.petName ?? null,
     manageUrl,
     extracted: vision.extraction
       ? {

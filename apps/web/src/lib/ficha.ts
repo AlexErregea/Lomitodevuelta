@@ -14,6 +14,8 @@ const idSchema = z.string().uuid();
 export interface PublicReport {
   id: string;
   reportType: ReportType;
+  /** Solo Flujo A: quien encuentra un perro no sabe su nombre. */
+  petName: string | null;
   attributes: DogAttributes;
   distinctiveMarks: string | null;
   isSensitive: boolean;
@@ -31,6 +33,7 @@ export interface PublicReport {
 export interface ReportePreview {
   id: string;
   reportType: ReportType;
+  petName: string | null;
   /** Alcaldía declarada, o null si la persona solo dio GPS. */
   addressText: string | null;
   /** "hace 3 h", "ayer", "hace 4 días" — ya resuelto en servidor. */
@@ -56,7 +59,7 @@ export async function loadRecentPublicReports(limit = 3): Promise<ReportePreview
 
   const { data: dogs } = await db
     .from('dogs_public')
-    .select('id, report_type, attributes, address_text, created_at, is_sensitive')
+    .select('id, report_type, pet_name, attributes, address_text, created_at, is_sensitive')
     .eq('is_sensitive', false)
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -87,6 +90,7 @@ export async function loadRecentPublicReports(limit = 3): Promise<ReportePreview
     return {
       id: d.id as string,
       reportType: d.report_type as ReportType,
+      petName: (d.pet_name as string | null) ?? null,
       addressText: (d.address_text as string | null) ?? null,
       cuando: tiempoRelativo(d.created_at as string),
       rasgos: describirRasgos(parseAttributes(d.attributes)),
@@ -145,6 +149,7 @@ export async function loadPublicReport(id: string): Promise<PublicReport | null>
   return {
     id: dog.id,
     reportType: dog.report_type,
+    petName: (dog.pet_name as string | null) ?? null,
     attributes: parseAttributes(dog.attributes),
     distinctiveMarks: dog.distinctive_marks ?? null,
     isSensitive: Boolean(dog.is_sensitive),

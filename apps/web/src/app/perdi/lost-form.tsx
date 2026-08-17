@@ -70,6 +70,7 @@ export function LostForm() {
     const whatsapp = String(formData.get('whatsapp') ?? '').trim();
     const eventDate = String(formData.get('eventDate') ?? '');
     const marks = String(formData.get('distinctiveMarks') ?? '').trim();
+    const petName = String(formData.get('petName') ?? '').trim();
     // Vacío si Turnstile no está configurado en este entorno: el servidor solo
     // lo exige cuando hay llaves.
     const turnstileToken = String(formData.get('turnstileToken') ?? '');
@@ -102,6 +103,7 @@ export function LostForm() {
         contact: { channel: 'whatsapp', value: whatsapp },
         ...(turnstileToken ? { turnstileToken } : {}),
         ...(location.addressText ? { addressText: location.addressText } : {}),
+        ...(petName ? { petName } : {}),
         ...(marks ? { distinctiveMarks: marks } : {}),
       };
       const response = await fetch('/api/reports', {
@@ -176,6 +178,7 @@ export function LostForm() {
               manageToken={manageToken}
               initialAttributes={result.extracted?.attributes ?? {}}
               initialMarks={null}
+              initialPetName={result.petName ?? ''}
             />
           </div>
         </div>
@@ -211,6 +214,17 @@ export function LostForm() {
   return (
     <form action={handleSubmit} onFocusCapture={markStarted}>
       <FlowHeading title={t.heading} promise={t.promise} />
+
+      {/* Primero el nombre: cambia el tono de todo el formulario. */}
+      <Field label={t.nameLabel} hint={t.nameHint} htmlFor="petName">
+        <input
+          id="petName"
+          name="petName"
+          maxLength={40}
+          placeholder={t.namePlaceholder}
+          className={controlClass}
+        />
+      </Field>
 
       <Field label={t.photosLabel} htmlFor="photos">
         <PhotoPicker id="photos" name="photos" multiple maxFiles={MAX_PHOTOS} />

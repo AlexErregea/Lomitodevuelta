@@ -239,11 +239,14 @@ async function CercaDeTi() {
                   >
                     {reporte.reportType === 'lost' ? t.badges.lost : t.badges.found}
                   </span>
-                  {reporte.addressText && (
-                    <span className="truncate font-display text-sm font-bold">{reporte.addressText}</span>
+                  {(reporte.petName || reporte.addressText) && (
+                    <span className="truncate font-display text-sm font-bold">
+                      {reporte.petName ?? reporte.addressText}
+                    </span>
                   )}
                 </div>
                 <div className="mt-[5px] text-xs text-[#8a7962]">
+                  {reporte.petName && reporte.addressText ? `${reporte.addressText} · ` : ''}
                   {reporte.rasgos ? `${reporte.rasgos} · ` : ''}
                   {reporte.cuando}
                 </div>

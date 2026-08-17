@@ -85,6 +85,13 @@ export const createReportRequestSchema = z.object({
   // Flujo A (opcionales; la IA los completa y el usuario corrige):
   attributes: dogAttributesSchema.optional(),
   distinctiveMarks: z.string().max(500).optional(),
+  /**
+   * Nombre del perro. Solo Flujo A: quien encuentra uno en la calle no lo sabe.
+   * No entra al score — el lado "encontrado" nunca lo tiene, así que compararlo
+   * sería imposible por construcción. Es presentación: titular de la ficha,
+   * og:image y texto que se comparte por WhatsApp.
+   */
+  petName: z.string().trim().min(1).max(40).optional(),
   // Flujo B:
   finderNote: z.string().max(500).optional(),
 });
@@ -100,6 +107,8 @@ export const updateReportRequestSchema = z
     /** null = borrar el texto */
     distinctiveMarks: z.string().max(500).nullable().optional(),
     finderNote: z.string().max(500).nullable().optional(),
+    /** null = quitarlo; la gente a veces lo publica y luego se arrepiente. */
+    petName: z.string().trim().max(40).nullable().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, {
     message: 'Debe incluirse al menos un campo a corregir.',
@@ -111,6 +120,7 @@ export interface UpdateReportResponse {
   attributes: DogAttributes;
   distinctiveMarks: string | null;
   finderNote: string | null;
+  petName: string | null;
 }
 
 // ----------------------------------------------------------------------------
@@ -246,6 +256,8 @@ export interface ScoredCandidate {
 
 export interface CreateReportResponse {
   reportId: string;
+  /** Eco del nombre recibido (Flujo A); null en el Flujo B. */
+  petName: string | null;
   /** Enlace de gestión firmado — se muestra UNA vez y se envía por WhatsApp */
   manageUrl: string;
   /** null si la IA quedó pendiente (ruta pending, ADR-0003) */
@@ -266,6 +278,7 @@ export interface ReportPublicResponse {
   reportType: ReportType;
   attributes: DogAttributes;
   distinctiveMarks: string | null;
+  petName: string | null;
   isSensitive: boolean;
   rewardOffered: boolean;
   eventDate: string;

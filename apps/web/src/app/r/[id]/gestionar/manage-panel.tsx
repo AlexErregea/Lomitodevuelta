@@ -21,6 +21,7 @@ export function ManagePanel({
   expiresAt,
   attributes,
   distinctiveMarks,
+  petName,
 }: {
   reportId: string;
   manageToken: string;
@@ -28,6 +29,8 @@ export function ManagePanel({
   expiresAt: string | null;
   attributes: DogAttributes;
   distinctiveMarks: string | null;
+  /** null en el Flujo B: ahí el campo no existe y el editor lo oculta. */
+  petName: string | null;
 }) {
   const [renewState, setRenewState] = useState<string | null>(null);
   const [renewFailed, setRenewFailed] = useState(false);
@@ -93,6 +96,7 @@ export function ManagePanel({
           manageToken={manageToken}
           initialAttributes={attributes}
           initialMarks={distinctiveMarks}
+          initialPetName={petName}
         />
       </Card>
 

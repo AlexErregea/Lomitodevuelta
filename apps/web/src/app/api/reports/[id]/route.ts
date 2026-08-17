@@ -50,6 +50,7 @@ export async function GET(
     reportType: dog.report_type,
     attributes: parseAttributes(dog.attributes),
     distinctiveMarks: dog.distinctive_marks ?? null,
+    petName: dog.pet_name ?? null,
     isSensitive: Boolean(dog.is_sensitive),
     rewardOffered: Boolean(dog.reward_offered),
     eventDate: dog.event_date,
@@ -87,13 +88,14 @@ export async function PATCH(
     patch.attributes = { ...parseAttributes(auth.dog.attributes), ...input.attributes };
   }
   if (input.distinctiveMarks !== undefined) patch.distinctive_marks = input.distinctiveMarks;
+  if (input.petName !== undefined) patch.pet_name = input.petName;
   if (input.finderNote !== undefined) patch.finder_note = input.finderNote;
 
   const { data: updated, error } = await supabaseAdmin()
     .from('dogs')
     .update(patch)
     .eq('id', id)
-    .select('id, attributes, distinctive_marks, finder_note')
+    .select('id, attributes, distinctive_marks, finder_note, pet_name')
     .single();
   if (error || !updated) {
     console.error(JSON.stringify({ msg: 'report_patch_failed', error: error?.message }));
@@ -105,6 +107,7 @@ export async function PATCH(
     attributes: parseAttributes(updated.attributes),
     distinctiveMarks: updated.distinctive_marks ?? null,
     finderNote: updated.finder_note ?? null,
+    petName: updated.pet_name ?? null,
   };
   return NextResponse.json(response);
 }
