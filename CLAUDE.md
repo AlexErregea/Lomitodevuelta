@@ -56,7 +56,7 @@ del Sprint 1 dejó de ser una promesa. La entrega ES la verificación del númer
 Coordenadas de producción: Supabase `wgpksrgqtmbnpwrfemgg` (us-east-1, plan
 Free), Vercel con **Root Directory `apps/web`** y framework `nextjs`, dominio
 **`lomitodevuelta.com`** con DNS en Cloudflare. El `.mx` nunca se compró: no debe
-aparecer en ningún texto. Las 4 Edge Functions desplegadas; 12 migraciones
+aparecer en ningún texto. Las 4 Edge Functions desplegadas; 14 migraciones
 aplicadas con el historial reconciliado a las versiones del repo.
 
 **Trampas que costaron horas de depuración. No repetirlas:**
@@ -89,6 +89,49 @@ aplicadas con el historial reconciliado a las versiones del repo.
 - **`capture` en el input de foto está prohibido.** Fuerza la cámara y esconde la
   galería, lo que pierde reportes de quien ya tenía la foto. El selector nativo
   ya ofrece "Tomar foto" como primera opción.
+- **`disabled={busy}` NO evita el doble envío.** `setStage` corre dentro de una
+  acción de formulario, o sea como transición, y React puede diferir ese render:
+  el botón sigue vivo y un segundo toque (478 ms en producción) entra completo.
+  Se duplicaban reporte, subida, inferencias y mensaje de WhatsApp — y dos fichas
+  del mismo perro en el inventario. El candado es un `ref` síncrono
+  (`submittingRef`) en ambos formularios. Era además la causa de los 429 de
+  Replicate: dos predicciones simultáneas contra una ráfaga de 1.
+- **Sin `.gitattributes` con `eol=lf`, Windows marca 27 archivos como
+  modificados** y `git status` deja de servir para distinguir cambios reales.
+  Provocó una falsa alarma de migración editada. Ante un diff sospechoso:
+  `git diff --ignore-cr-at-eol --numstat` antes de dar la voz.
+
+**Nombre del perro** (2026-08-16, migración 14): `dogs.pet_name`, nullable para
+siempre. **Solo Flujo A** — quien encuentra un perro no sabe cómo se llama, y el
+flujo sagrado no gana ni un campo. **NO entra al score**: el lado "encontrado"
+nunca lo tiene, así que compararlo sería imposible por construcción y
+`packages/matching` no se toca. Es presentación, y donde rinde no es la ficha
+sino el **texto que se comparte por WhatsApp** ("Ayúdanos a encontrar a Toby" en
+vez de "PERDIDO 🐕") y la og:image — o sea el mecanismo de distribución del
+producto. Va **primero** en `/perdi` a propósito: cambia el registro del
+formulario, de levantar un acta a contarle a alguien sobre tu perro. Editable y
+borrable desde el panel de gestión. Riesgo de extorsión evaluado y aceptado: la
+ficha enmascara el contacto y el puente exige doble aceptación + prueba de
+propiedad; todo grupo de mascotas perdidas del país publica el nombre.
+
+**La landing lee datos reales** (2026-08-16): la sección "cerca de ti" mostraba
+tres perros inventados —con alcaldía, tiempo y "2 posibles coincidencias"—
+indistinguibles de reportes de verdad, en un producto que vive de que la gente
+crea lo que ve. Ahora usa `loadRecentPublicReports()` sobre `dogs_public`,
+**excluye los sensibles** (la ficha los difumina tras un toque; una landing no
+tiene dónde enmarcarlos) y las tarjetas enlazan a la ficha. Estado vacío propio,
+que es lo que se ve al lanzar y en cualquier semana tranquila: da la buena
+noticia primero en vez de fingir actividad. La página pasó a ISR
+(`export const revalidate = 300`) — es la URL más compartida y no debe pagar una
+consulta por visita.
+
+**Ilustración del dálmata** (`components/dalmata.tsx`): el módulo del hero tenía
+dos cuadros grises y la tesis había que leerla. Ahora son dos vistas del **mismo**
+perro; las manchas son los puntos de referencia que dejan verlo sin leer. Se
+descartaron el perfil lateral (se leía como otro perro, lo contrario del mensaje)
+y el frente girado (decía "misma foto inclinada", no "otra persona la tomó").
+Reutiliza la silueta de cabeza de `components/brand.tsx`, por eso empata con el
+logo.
 
 **Pendiente, por orden de impacto:**
 
